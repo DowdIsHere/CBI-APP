@@ -1,0 +1,23 @@
+{
+  "name": "cbi-app",
+  "version": "1.0.0",
+  "description": "CBI - Cognition Blocks of Intelligence (Dowd Protocol)",
+  "private": true,
+  "workspaces": [
+    "web",
+    "mobile",
+    "backend",
+    "shared"
+  ],
+  "scripts": {
+    "dev:web": "cd web && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:mobile": "cd mobile && npm run start",
+    "build:web": "cd web && npm run build",
+    "build:backend": "cd backend && npm run build",
+    "test": "npm run test --workspaces",
+    "lint": "npm run lint --workspaces"
+  },
+  "author": "CBI Team",
+  "license": "PROPRIETARY"
+}
