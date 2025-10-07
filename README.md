@@ -22,6 +22,7 @@ Full-stack nutrition tracking application based on the Dowd Protocol, supporting
 - [Security](#-security)
 - [Legal](#️-legal)
 - [Support](#-support)
+- [Contributing](#-contributing)
 
 ## 🏗️ Project Structure
 
@@ -314,6 +315,18 @@ railway up
 
 ## 📖 Documentation
 
+### 📚 Which Guide Should I Use?
+
+| Guide | Best For | Description |
+|-------|----------|-------------|
+| **[README.md](./README.md)** | Everyone | Overview, features, and general project information |
+| **[GETTING_STARTED.md](./GETTING_STARTED.md)** | Developers | Complete technical setup guide with detailed steps |
+| **[COMPLETE_SETUP_GUIDE.md](./COMPLETE_SETUP_GUIDE.md)** | End Users | Simple 3-step setup for Windows desktop launcher |
+| **[README_LAUNCHER.md](./README_LAUNCHER.md)** | Windows Users | Guide for using the desktop launcher |
+| **[COMPLETION_SUMMARY.md](./COMPLETION_SUMMARY.md)** | Everyone | Feature list and current development status |
+
+### 📄 Available Documentation
+
 - **[GETTING_STARTED.md](./GETTING_STARTED.md)** - Complete setup guide for developers
 - **[COMPLETE_SETUP_GUIDE.md](./COMPLETE_SETUP_GUIDE.md)** - End-user setup guide
 - **[COMPLETION_SUMMARY.md](./COMPLETION_SUMMARY.md)** - Development progress and features
@@ -347,6 +360,22 @@ For issues, questions, and feature requests:
 - **GitHub Issues:** [Create an Issue](https://github.com/DowdIsHere/CBI-APP/issues)
 - **Documentation:** Check the guides in this repository
 - **Community:** Join discussions in GitHub Discussions (if enabled)
+
+## 🤝 Contributing
+
+We welcome contributions! Here's how you can help:
+
+1. **Report Bugs:** Open an issue with detailed reproduction steps
+2. **Suggest Features:** Share your ideas through GitHub issues
+3. **Submit Pull Requests:** Fork the repo, make changes, and submit a PR
+4. **Improve Documentation:** Help make our docs even better
+5. **Share Feedback:** Let us know how we can improve the app
+
+**Before contributing:**
+- Read the code of conduct (if available)
+- Check existing issues to avoid duplicates
+- Follow the code style used in the project
+- Test your changes thoroughly
 
 ---
 

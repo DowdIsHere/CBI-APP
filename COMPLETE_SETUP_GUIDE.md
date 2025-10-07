@@ -201,6 +201,21 @@ Your CBI-ENS nutrition tracking system is ready to help you optimize your cellul
 
 **Questions?** Check the troubleshooting section or the other documentation files.
 
+### 💡 Pro Tips
+
+- **Take Clear Photos:** For best AI analysis results, take photos in good lighting with the food clearly visible
+- **Log Consistently:** Try to log all your meals for more accurate tracking and better insights
+- **Review Your Scores:** Check your daily inflammatory score to understand patterns
+- **Set Up Your Profile:** Add your allergies and dietary preferences for personalized warnings
+- **Use Desktop Shortcut:** The CBI-ENS desktop icon makes launching the app super easy
+- **Check Your Streak:** Maintain your daily logging streak for better habit formation
+
+### 🔗 Useful Links
+
+- **Anthropic Console:** https://console.anthropic.com/ (for API key management)
+- **PostgreSQL Docs:** https://www.postgresql.org/docs/
+- **Support:** Check README.md for support options
+
 ---
 
 **CBI-ENS** - Cognition Blocks of Intelligence - Enhanced Nutrition System

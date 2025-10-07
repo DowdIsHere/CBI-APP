@@ -11,6 +11,30 @@ Welcome! This comprehensive guide will get your CBI (Cognition Blocks of Intelli
 
 **Time estimate:** 15 minutes (first-time setup)
 
+---
+
+## 🎯 Quick Reference
+
+**TL;DR - Minimal Setup:**
+```bash
+# 1. Install dependencies
+npm install && cd web && npm install && cd ../backend && npm install && cd ..
+
+# 2. Set up database
+createdb cbi_db
+cd backend && npm run db:generate && npm run db:migrate && cd ..
+
+# 3. Configure .env files (see Step 3 below for details)
+
+# 4. Start servers (in separate terminals)
+cd backend && npm run dev  # Terminal 1
+cd web && npm run dev      # Terminal 2
+```
+
+For detailed instructions, continue reading below.
+
+---
+
 ## Prerequisites
 
 Before starting, make sure you have installed:
