@@ -1,5 +1,7 @@
 # CBI - Cognition Blocks of Intelligence
 
+> **Version:** 1.0.0 | **Status:** Active Development | **Last Updated:** 2025
+
 Full-stack nutrition tracking application based on the Dowd Protocol, supporting web and mobile platforms.
 
 **About the Dowd Protocol:** CBI helps users track and optimize their nutrition based on inflammatory response scoring. The app uses AI-powered food analysis to score foods on a scale from -10 (anti-inflammatory) to +10 (pro-inflammatory), helping users make informed dietary choices for cellular health optimization.
@@ -7,6 +9,7 @@ Full-stack nutrition tracking application based on the Dowd Protocol, supporting
 ## 📋 Table of Contents
 
 - [Project Structure](#️-project-structure)
+- [Key Features](#-key-features)
 - [Quick Start](#-quick-start)
 - [Mobile Development](#-mobile-development)
 - [Database](#️-database)
@@ -30,6 +33,35 @@ cbi-app/
 ├── shared/              # Shared utilities and types
 └── docs/                # Documentation
 ```
+
+## ✨ Key Features
+
+### 🤖 AI-Powered Food Analysis
+- Photo-based food recognition using Claude 3.5 Sonnet Vision API
+- Automatic nutritional breakdown (calories, protein, carbs, fats, fiber)
+- Inflammatory response scoring (-10 to +10 scale)
+- Portion size estimation
+- Cooking method detection
+
+### 📊 Nutrition Tracking
+- Daily meal logging with timestamps
+- Historical meal tracking and progress monitoring
+- Daily inflammatory score totals
+- Streak tracking for consistent usage
+- Photo storage for meal history
+
+### 🎯 Personalized Insights
+- Custom allergy and sensitivity warnings
+- User-specific dietary recommendations
+- Progress visualization over time
+- Meal analysis with detailed feedback
+
+### 🔐 Secure & Private
+- JWT-based authentication
+- Password hashing with bcrypt
+- Protected API routes
+- Input validation and sanitization
+- CORS and security headers configured
 
 ## 🚀 Quick Start
 
@@ -300,7 +332,14 @@ railway up
 
 ## ⚖️ Legal
 
-CBI is an educational nutrition tool. It does not diagnose, treat, cure, or prevent any disease. See full disclaimer in the app.
+**Important Disclaimer:** CBI is an educational nutrition tracking tool designed to help users make informed dietary decisions. It is **not** intended to diagnose, treat, cure, or prevent any disease or medical condition. 
+
+- Always consult with qualified healthcare professionals before making significant dietary changes
+- Individual results may vary
+- The inflammatory scoring system is based on general nutritional principles
+- This app is not a substitute for professional medical advice
+
+See the full disclaimer within the application for complete terms.
 
 ## 📧 Support
 

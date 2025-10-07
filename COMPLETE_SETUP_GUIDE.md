@@ -1,5 +1,9 @@
 # 🚀 CBI-ENS Complete Setup Guide
 
+> **CBI-ENS** = Cognition Blocks of Intelligence - Enhanced Nutrition System
+
+This guide will help you set up and launch your CBI nutrition tracking application in just 3 simple steps!
+
 ## Quick Start (3 Simple Steps)
 
 ### ✅ Step 1: Save Your Logo

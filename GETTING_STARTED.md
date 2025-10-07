@@ -1,6 +1,15 @@
 # CBI - Getting Started Guide
 
-Welcome! This guide will get your CBI application running in 15 minutes.
+Welcome! This comprehensive guide will get your CBI (Cognition Blocks of Intelligence) application up and running in approximately 15 minutes.
+
+**What you'll accomplish:**
+- ✅ Install all required dependencies
+- ✅ Set up PostgreSQL database
+- ✅ Configure environment variables
+- ✅ Start the development servers
+- ✅ Create your first user account
+
+**Time estimate:** 15 minutes (first-time setup)
 
 ## Prerequisites
 
@@ -301,7 +310,7 @@ cd backend && npm test
 **Check logs:**
 - Backend: Terminal running `npm run dev`
 - Web: Browser console (F12)
-- Database: Prisma Studio
+- Database: Prisma Studio (http://localhost:5555)
 
 **Documentation:**
 - [API Documentation](./docs/API.md)
@@ -311,8 +320,28 @@ cd backend && npm test
 **Still stuck?**
 - Check the error message carefully
 - Google the specific error
-- Check Prisma docs for database issues
-- Check React docs for frontend issues
+- Check Prisma docs for database issues: https://www.prisma.io/docs
+- Check React docs for frontend issues: https://react.dev
+
+## Frequently Asked Questions (FAQ)
+
+### Q: Do I need Redis installed?
+**A:** No, Redis is optional and mainly used for caching in production. The app will work fine without it for development.
+
+### Q: Can I use a different database?
+**A:** While PostgreSQL is recommended, Prisma supports other databases. However, you'll need to update the schema and connection string accordingly.
+
+### Q: How much does the Anthropic API cost?
+**A:** Anthropic charges per token usage. Check their pricing at https://www.anthropic.com/pricing. For typical usage, costs are minimal during development.
+
+### Q: Can I run this on Windows/Mac/Linux?
+**A:** Yes! The app is cross-platform and works on all major operating systems that support Node.js and PostgreSQL.
+
+### Q: Do I need to deploy both frontend and backend separately?
+**A:** Yes, the frontend (web) and backend (API) are separate applications. The web app can be deployed to Vercel, and the backend to Railway or similar services.
+
+### Q: How do I update the database schema?
+**A:** Edit `backend/prisma/schema.prisma`, then run `npm run db:migrate` to create and apply the migration.
 
 ## You're All Set! 🚀
 
