@@ -76,8 +76,8 @@ cd backend
 # Generate Prisma client
 npm run db:generate
 
-# Create database (requires PostgreSQL installed)
-# createdb cbi_db
+# Create database (ensure PostgreSQL is installed and running)
+createdb cbi_db
 
 # Run migrations
 npm run db:migrate
@@ -85,15 +85,23 @@ npm run db:migrate
 
 ## 📝 ENVIRONMENT SETUP
 
-### Backend `.env` (Already configured)
+### Backend `.env` Configuration
+Create a `.env` file in the `backend/` directory with the following settings:
+
 ```env
 PORT=5000
 DATABASE_URL=postgresql://user:password@localhost:5432/cbi_db
-JWT_SECRET=<your-secret>
-ANTHROPIC_API_KEY=sk-ant-api-your-key-here  # ⚠️ ADD YOUR KEY
+JWT_SECRET=<your-secret-key-here>
+ANTHROPIC_API_KEY=<your-anthropic-api-key>  # ⚠️ REQUIRED for AI features
 ```
 
-### Frontend `.env` (Already configured)
+**Important:** 
+- Replace `<your-secret-key-here>` with a secure random string
+- Replace `<your-anthropic-api-key>` with your actual API key from https://console.anthropic.com/
+
+### Frontend `.env` Configuration
+Create a `.env` file in the `web/` directory with the following setting:
+
 ```env
 VITE_API_URL=http://localhost:5000/api
 ```
@@ -102,20 +110,23 @@ VITE_API_URL=http://localhost:5000/api
 
 ### To Make App Fully Functional:
 
-1. **Add Anthropic API Key**
-   - Get key from https://console.anthropic.com/
-   - Add to `backend/.env` as `ANTHROPIC_API_KEY`
+1. **Add Anthropic API Key** (Required)
+   - Sign up at https://console.anthropic.com/
+   - Create an API key
+   - Add to `backend/.env` as `ANTHROPIC_API_KEY=sk-ant-api03-...`
+   - Without this key, AI photo analysis will not work
 
-2. **Set Up PostgreSQL**
+2. **Set Up PostgreSQL Database** (Required)
    - Install PostgreSQL if not already installed
+   - Ensure PostgreSQL service is running
    - Create database: `createdb cbi_db`
    - Run migrations: `cd backend && npm run db:migrate`
 
 3. **Complete Remaining Pages** (Optional for MVP)
-   - Progress Page - View charts and trends
-   - Education Page - CBI information
-   - Profile Page - User settings
-   - Onboarding Page - New user setup
+   - Progress Page - View charts and trends over time
+   - Education Page - CBI information and learning resources
+   - Profile Page - User settings and preferences
+   - Onboarding Page - New user setup and configuration
 
 ## 🎨 KEY FEATURES IMPLEMENTED
 
@@ -223,23 +234,28 @@ VITE_API_URL=http://localhost:5000/api
 
 ## 💡 TIPS FOR SUCCESS
 
-1. **Database**: Make sure PostgreSQL is running
-2. **API Key**: Claude Vision won't work without valid Anthropic API key
-3. **Ports**: Ensure ports 3000 and 5000 are available
-4. **Images**: Test with clear, well-lit food photos
-5. **Allergies**: Set allergies in profile for personalized warnings
+1. **Database**: Ensure PostgreSQL is installed and the service is running before starting the app
+2. **API Key**: Claude Vision AI features require a valid Anthropic API key from https://console.anthropic.com/
+3. **Ports**: Make sure ports 3000 (frontend) and 5000 (backend) are available and not in use
+4. **Images**: For best results, use clear, well-lit food photos with good resolution
+5. **Allergies**: Configure user allergies in the profile for personalized dietary warnings
+6. **Environment Files**: Always create `.env` files by copying from `.env.example` and updating values
 
 ## 🎯 YOUR APP IS READY TO USE!
 
-The core functionality is complete. You have:
-- A working nutrition tracking system
-- AI-powered food analysis
-- Beautiful, responsive UI
-- Secure authentication
-- Data persistence
+The core functionality is complete and ready for testing. You have:
+- ✅ A working nutrition tracking system with database persistence
+- ✅ AI-powered food analysis using Claude Vision API
+- ✅ Beautiful, responsive UI with modern design
+- ✅ Secure authentication with JWT tokens
+- ✅ Comprehensive data persistence with PostgreSQL
+- ✅ Photo upload and analysis capabilities
 
-Just add your Anthropic API key and set up the database to start tracking meals!
+**Next Steps:**
+1. Add your Anthropic API key to enable AI features
+2. Set up and migrate the PostgreSQL database
+3. Start tracking meals and monitoring your cellular health!
 
 ---
 
-Built with ❤️ for cellular health optimization
+**Built with ❤️ for cellular health optimization through evidence-based nutrition tracking**

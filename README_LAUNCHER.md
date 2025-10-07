@@ -13,11 +13,13 @@ This will create a **CBI-ENS** icon on your desktop.
 
 ### 2. Set Up Database (First Time Only)
 ```bash
-# Open Command Prompt in cbi-app folder
+# Open Command Prompt in your CBI app folder
 cd backend
 npm run db:generate
 npm run db:migrate
 ```
+
+**Note:** Make sure PostgreSQL is installed and running before running these commands.
 
 ## 🎯 How to Use
 
@@ -51,12 +53,14 @@ Or just close the browser and command windows.
 
 ## ⚡ First Launch Checklist
 
-- [x] Dependencies installed (`npm install`)
-- [x] Anthropic API key added
+- [ ] Node.js installed (`node --version` should work)
+- [ ] PostgreSQL installed and running
+- [ ] Dependencies installed (run `npm install` in root, web, and backend folders)
+- [ ] Anthropic API key added to `backend/.env`
 - [ ] PostgreSQL database created (`createdb cbi_db`)
-- [ ] Database migrations run (`npm run db:migrate`)
-- [ ] Desktop shortcut created
-- [ ] Launch CBI-ENS!
+- [ ] Database migrations run (`cd backend && npm run db:migrate`)
+- [ ] Desktop shortcut created (run `CREATE_DESKTOP_SHORTCUT.bat`)
+- [ ] Ready to launch CBI-ENS!
 
 ## 🎨 Icon Customization (Optional)
 

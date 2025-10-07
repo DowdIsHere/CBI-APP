@@ -4,15 +4,16 @@
 
 ### ✅ Step 1: Save Your Logo
 1. **Right-click** your CBI logo image → **Save As**
-2. Save to: `C:\Users\d1pri\cbi-app\cbi-logo.png`
+2. Save to your CBI app folder as: `cbi-logo.png`
 3. Make sure it's named exactly `cbi-logo.png`
 
 ### ✅ Step 2: Set Up Database (One-Time)
 1. Open **Command Prompt** (Windows Key + R, type `cmd`, Enter)
-2. Copy and paste these commands **one at a time**:
+2. Navigate to your CBI app folder and then to the backend directory
+3. Copy and paste these commands **one at a time**:
 
 ```bash
-cd C:\Users\d1pri\cbi-app\backend
+cd backend
 ```
 ```bash
 npm run db:generate
@@ -24,7 +25,7 @@ npm run db:migrate
 When it asks for migration name, just press **Enter**
 
 ### ✅ Step 3: Update Desktop Icon
-1. Go to folder: `C:\Users\d1pri\cbi-app`
+1. Go to your CBI app folder
 2. Double-click: **`UPDATE_ICON.bat`**
 3. Follow the prompts
 
@@ -121,34 +122,56 @@ Keep your daily total score **below 0** (negative is better!)
 ## ❓ Troubleshooting
 
 ### "Node.js not found"
-- Install from: https://nodejs.org/
+**Solution:**
+- Install from: https://nodejs.org/ (download LTS version)
 - Restart computer after installation
+- Verify installation: Open Command Prompt and type `node --version`
 
 ### "PostgreSQL not found"
+**Solution:**
 - Install from: https://www.postgresql.org/download/windows/
-- Remember password during setup
-- Restart computer
+- Remember the password you set during installation
+- Restart computer after installation
+- Verify: `psql --version` should work in Command Prompt
 
 ### "Port already in use"
-1. Run **CBI-ENS-Stop.bat**
-2. Wait 5 seconds
-3. Launch again
+**Solution:**
+1. Run **CBI-ENS-Stop.bat** to stop all servers
+2. Wait 5-10 seconds for processes to fully terminate
+3. Try launching again
+4. If problem persists, restart your computer
 
 ### "Database connection failed"
-Check `backend/.env` file:
-```
-DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/cbi_db
-```
-Replace `YOUR_PASSWORD` with your PostgreSQL password
+**Solution:**
+1. Ensure PostgreSQL is running (check Windows Services)
+2. Check `backend/.env` file contains correct database credentials:
+   ```
+   DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/cbi_db
+   ```
+3. Replace `YOUR_PASSWORD` with your actual PostgreSQL password
+4. Ensure database `cbi_db` exists (create it if needed: `createdb cbi_db`)
 
 ### "AI analysis not working"
-Check `backend/.env` file has your Anthropic API key:
-```
-ANTHROPIC_API_KEY=sk-ant-api03-ev3...UQAA
-```
+**Solution:**
+1. Check `backend/.env` file has your Anthropic API key:
+   ```
+   ANTHROPIC_API_KEY=sk-ant-api03-...
+   ```
+2. Verify the API key is valid at https://console.anthropic.com/
+3. Restart the backend server after adding the key
 
-### Browser doesn't open
-Manually go to: http://localhost:3000
+### "Browser doesn't open automatically"
+**Solution:**
+- Manually navigate to: http://localhost:3000
+- Clear browser cache if page doesn't load properly
+- Try a different browser (Chrome, Firefox, Edge)
+
+### "npm command not found"
+**Solution:**
+- Node.js is not properly installed
+- Reinstall Node.js from https://nodejs.org/
+- Make sure to check "Add to PATH" during installation
+- Restart Command Prompt after installation
 
 ---
 

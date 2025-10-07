@@ -4,12 +4,15 @@ Welcome! This guide will get your CBI application running in 15 minutes.
 
 ## Prerequisites
 
-Before starting, make sure you have:
+Before starting, make sure you have installed:
 
 - ✅ **Node.js 18+** ([Download](https://nodejs.org/))
+  - Verify: `node --version` should show v18 or higher
 - ✅ **PostgreSQL 14+** ([Download](https://www.postgresql.org/download/))
+  - Verify: `psql --version` should show version 14 or higher
 - ✅ **Git** ([Download](https://git-scm.com/))
-- ✅ **Code Editor** (VS Code recommended)
+  - Verify: `git --version` should work
+- ✅ **Code Editor** (VS Code recommended: [Download](https://code.visualstudio.com/))
 
 ## Quick Start (5 Steps)
 
@@ -17,14 +20,18 @@ Before starting, make sure you have:
 
 ```bash
 # Navigate to project root
-cd cbi-app
+cd CBI-APP
 
-# Install all dependencies
+# Install root dependencies
 npm install
+
+# Install workspace dependencies
 cd web && npm install && cd ..
 cd backend && npm install && cd ..
 cd shared && npm install && cd ..
 ```
+
+**Note:** If workspace directories don't exist yet, skip the individual workspace installs.
 
 ### Step 2: Set Up PostgreSQL Database (3 min)
 
@@ -57,8 +64,9 @@ cp .env.example .env
 ```
 
 **⚠️ Important: Update these values in `backend/.env`:**
-- `DATABASE_URL`: Your PostgreSQL connection string
-- `JWT_SECRET`: A random string (use a password generator)
+- `DATABASE_URL`: Your PostgreSQL connection string (format: `postgresql://username:password@localhost:5432/cbi_db`)
+- `JWT_SECRET`: A secure random string (use a password generator - minimum 32 characters recommended)
+- `ANTHROPIC_API_KEY`: Your API key from https://console.anthropic.com/ (required for AI features)
 
 ### Step 4: Run Database Migrations (1 min)
 
@@ -240,13 +248,15 @@ npm run db:generate
 
 ### Enable Claude Vision API
 
-1. Get API key from https://console.anthropic.com/
+1. Sign up at https://console.anthropic.com/ and create an API key
 2. Add to `backend/.env`:
    ```
-   ANTHROPIC_API_KEY=sk-ant-api03-your-key-here
+   ANTHROPIC_API_KEY=sk-ant-api03-your-actual-key-here
    ```
-3. Implement service in `backend/src/services/claudeVision.ts`
-4. Update meal controller to use it
+3. Restart the backend server
+4. The AI photo analysis feature will now work
+
+**Note:** Without this API key, photo analysis features will not function.
 
 ### Deploy to Production
 
