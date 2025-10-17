@@ -1,0 +1,104 @@
+================================================================================
+                  CBI APP - GET IT ON YOUR PHONE WITH AN ICON
+================================================================================
+
+                          3 SIMPLE STEPS TO SUCCESS
+
+Step 1: Open Command Prompt
+    - Press Windows key + R
+    - Type: cmd
+    - Press Enter
+
+Step 2: Run This Command
+    Copy and paste this into Command Prompt:
+
+    cd C:\ATP\CBI-App && build-android.bat
+
+    Press Enter
+
+Step 3: Wait & Install
+    - Wait 10 minutes for build
+    - Download APK from link
+    - Send to phone
+    - Install APK
+    - DONE! Icon appears on home screen!
+
+================================================================================
+
+                            WHAT YOU'LL SEE
+
+When you run the command:
+    ✓ Installing tools... (first time only)
+    ✓ Login to Expo... (create free account)
+    ✓ Building your app...
+    ✓ Here's your download link!
+
+After installing on phone:
+    📱 CBI app icon on home screen
+    🎯 Tap to open
+    📸 Camera works
+    🏷️ Barcode scanner works
+    📊 All features work!
+
+================================================================================
+
+                            CUSTOMIZE THE ICON
+
+Before building, want a custom icon?
+
+1. Open in browser: C:\ATP\CBI-App\create-icons.html
+2. Download the icon files
+3. Put them in: C:\ATP\CBI-App\assets\
+4. Run build command
+
+================================================================================
+
+                            TROUBLESHOOTING
+
+Problem: "eas command not found"
+Solution: npm install -g eas-cli
+
+Problem: "Not logged in"
+Solution: eas login (create free account)
+
+Problem: "Can't install on phone"
+Solution: Settings → Security → Unknown Sources ON
+
+================================================================================
+
+                            QUICK REFERENCE
+
+Test app (no icon, uses Expo Go):
+    cd C:\ATP\CBI-App
+    npm start
+
+Build real app (with icon):
+    cd C:\ATP\CBI-App
+    build-android.bat
+
+For iPhone:
+    cd C:\ATP\CBI-App
+    build-ios.bat
+
+================================================================================
+
+                            THE COMMAND (COPY THIS)
+
+cd C:\ATP\CBI-App && build-android.bat
+
+================================================================================
+
+                            THAT'S IT!
+
+You'll have a real app with an icon in about 20 minutes.
+
+The app will:
+    ✓ Show CBI icon on home screen
+    ✓ Work without internet
+    ✓ Have camera features
+    ✓ Track your meals
+    ✓ Look professional
+
+No App Store needed. No coding needed. Just run the command!
+
+================================================================================

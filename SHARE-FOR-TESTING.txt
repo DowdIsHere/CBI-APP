@@ -1,0 +1,184 @@
+================================================================================
+                 CBI APP - SHARE WITH TESTERS (NO IOS ACCOUNT)
+================================================================================
+
+        🎯 FASTEST WAY TO GET TESTING LINK (30 SECONDS)
+
+================================================================================
+
+Option 1: TEMPORARY LINK (Keep computer running)
+-------------------------------------------------
+
+1. Double-click this file:
+
+   create-test-link.bat
+
+2. Wait for QR code to appear
+
+3. Take screenshot of QR code
+
+4. Send to testers with these instructions:
+   "Install Expo Go app, scan this QR code"
+
+5. Keep your computer running while they test
+
+
+================================================================================
+
+Option 2: PERMANENT LINK (Hosted by Expo)
+------------------------------------------
+
+1. Double-click this file:
+
+   publish-for-testing.bat
+
+2. Wait for link (looks like: exp://u.expo.dev/...)
+
+3. Copy the link
+
+4. Send to testers with these instructions:
+   "Install Expo Go app, open this link"
+
+5. Link works forever - you can close your computer
+
+
+================================================================================
+
+                        INSTRUCTIONS FOR TESTERS
+
+iPhone Users:
+1. Install "Expo Go" from App Store (free)
+2. Scan QR code OR open link
+3. App loads - start testing!
+
+Android Users:
+1. Install "Expo Go" from Google Play (free)
+2. Scan QR code OR open link
+3. App loads - start testing!
+
+
+================================================================================
+
+                        WHAT TESTERS CAN DO
+
+✅ Test all features (camera, scanning, tracking)
+✅ Works on real iPhone (no TestFlight needed!)
+✅ Works on Android
+✅ Instant updates when you make changes
+✅ Free for everyone
+
+⚠️ Only limitation: Shows in Expo Go (no standalone icon)
+
+
+================================================================================
+
+                    WHICH OPTION TO CHOOSE?
+
+Temporary Link (create-test-link.bat):
+- ✅ Fastest setup (30 seconds)
+- ✅ Instant testing
+- ⚠️ Must keep computer running
+- ⚠️ New link each time
+
+Permanent Link (publish-for-testing.bat):
+- ✅ Link works forever
+- ✅ Can close computer
+- ✅ Same link for all testers
+- ✅ Easy to update
+
+
+================================================================================
+
+                    FOR ANDROID USERS ONLY
+
+Want full app with icon? Build APK:
+
+1. Double-click: build-android.bat
+2. Wait 10 minutes
+3. Share APK file with Android testers
+4. They get full app with CBI icon!
+
+
+================================================================================
+
+                        QUICK REFERENCE
+
+Create temporary testing link:
+    create-test-link.bat
+
+Publish permanent testing link:
+    publish-for-testing.bat
+
+Build Android APK (full app):
+    build-android.bat
+
+
+================================================================================
+
+                    MESSAGE TO SEND TESTERS
+
+Copy this message:
+---
+Hi! Please test the CBI app:
+
+1. Install "Expo Go" app (free)
+   - iPhone: App Store
+   - Android: Google Play
+
+2. Open this link / Scan this QR:
+   [PASTE LINK OR ATTACH QR CODE]
+
+3. App loads automatically - start testing!
+
+Let me know what you think. Thanks!
+---
+
+
+================================================================================
+
+                    AFTER YOUR IOS ACCOUNT RENEWS
+
+When you renew your Apple Developer account:
+
+1. Run: build-ios.bat
+2. Share via TestFlight
+3. Testers get full iOS app with icon
+
+
+================================================================================
+
+                        RECOMMENDATION
+
+For immediate testing:
+→ Double-click: publish-for-testing.bat
+→ Share the link
+→ Done!
+
+For best Android experience:
+→ Double-click: build-android.bat
+→ Share the APK
+→ Full app with icon!
+
+
+================================================================================
+
+                    COMMANDS (IF YOU PREFER TERMINAL)
+
+Temporary link:
+    cd C:\ATP\CBI-App
+    npx expo start --tunnel
+
+Permanent link:
+    cd C:\ATP\CBI-App
+    npx expo publish
+
+Android APK:
+    cd C:\ATP\CBI-App
+    build-android.bat
+
+
+================================================================================
+
+🎯 READY TO SHARE? JUST DOUBLE-CLICK: publish-for-testing.bat
+
+================================================================================

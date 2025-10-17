@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CBI App Icon Generator</title>
+</head>
+<body>
+    <h1>CBI App Icon Generator</h1>
+    <p>Creating icons...</p>
+    <canvas id="icon" width="1024" height="1024"></canvas>
+    <br>
+    <button onclick="downloadIcon('icon.png', 1024)">Download Icon (1024x1024)</button>
+    <button onclick="downloadIcon('adaptive-icon.png', 1024)">Download Adaptive Icon</button>
+    <button onclick="downloadIcon('favicon.png', 48)">Download Favicon</button>
+
+    <script>
+        const canvas = document.getElementById('icon');
+        const ctx = canvas.getContext('2d');
+
+        // Create gradient background (blue)
+        const gradient = ctx.createLinearGradient(0, 0, 1024, 1024);
+        gradient.addColorStop(0, '#1e3a8a');  // Dark blue
+        gradient.addColorStop(1, '#3b82f6');  // Lighter blue
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 1024, 1024);
+
+        // Draw white circle background
+        ctx.fillStyle = 'white';
+        ctx.beginPath();
+        ctx.arc(512, 512, 350, 0, 2 * Math.PI);
+        ctx.fill();
+
+        // Draw "CBI" text
+        ctx.fillStyle = '#1e3a8a';
+        ctx.font = 'bold 280px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('CBI', 512, 512);
+
+        // Draw small subtitle
+        ctx.fillStyle = '#3b82f6';
+        ctx.font = 'bold 60px Arial';
+        ctx.fillText('DOWD PROTOCOL', 512, 780);
+
+        function downloadIcon(filename, size) {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = size;
+            tempCanvas.height = size;
+            const tempCtx = tempCanvas.getContext('2d');
+
+            // Draw scaled version
+            tempCtx.drawImage(canvas, 0, 0, size, size);
+
+            // Download
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = tempCanvas.toDataURL();
+            link.click();
+        }
+
+        console.log('Icon created! Click buttons to download.');
+    </script>
+</body>
+</html>
