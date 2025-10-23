@@ -1,29 +1,55 @@
-import { View, Text, StyleSheet } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
 
 export default function App() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.text}>CBI APP IS WORKING!</Text>
-      <Text style={styles.subtext}>If you see this, the basic app works.</Text>
-    </View>
-  );
+  console.log('=== APP IS LOADING ===');
+
+  try {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.innerContainer}>
+          <Text style={styles.title}>CBI APP</Text>
+          <Text style={styles.subtitle}>LOADING SUCCESS</Text>
+          <Text style={styles.info}>If you see this, React Native works!</Text>
+        </View>
+      </SafeAreaView>
+    );
+  } catch (error) {
+    console.error('ERROR IN APP:', error);
+    return (
+      <View style={{ flex: 1, backgroundColor: 'red', justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ color: 'white', fontSize: 20 }}>ERROR OCCURRED</Text>
+      </View>
+    );
+  }
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#1e3a8a',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
-  text: {
-    fontSize: 24,
+  innerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  title: {
+    fontSize: 32,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#ffffff',
     marginBottom: 10,
   },
-  subtext: {
+  subtitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#60a5fa',
+    marginBottom: 20,
+  },
+  info: {
     fontSize: 16,
     color: '#bfdbfe',
+    textAlign: 'center',
   },
 });
