@@ -137,22 +137,46 @@ export default function MealEntryScreen({ route }: any) {
     }, 2000);
   };
 
-  const simulateBarcodeScanning = (barcode: string) => {
+  const simulateBarcodeScanning = async (barcode: string) => {
     setAnalyzing(true);
-    setTimeout(() => {
-      setDetectedFoods([
-        {
-          id: Date.now(),
-          name: 'Wild Planet Wild Sardines',
-          brand: 'Wild Planet',
-          upc: barcode,
-          servingSize: '1 can (3.75 oz)',
-          score: 2,
-          warnings: [],
-        },
-      ]);
-      setAnalyzing(false);
-    }, 1500);
+    try {
+      // Call Open Food Facts API for real barcode lookup
+      const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+      const data = await response.json();
+
+      if (data.status === 1 && data.product) {
+        const product = data.product;
+        setDetectedFoods([
+          {
+            id: Date.now(),
+            name: product.product_name || 'Unknown Product',
+            brand: product.brands || 'Unknown Brand',
+            upc: barcode,
+            servingSize: product.serving_size || 'See package',
+            score: 1, // Default score - you can add logic to calculate based on ingredients
+            warnings: [],
+          },
+        ]);
+      } else {
+        // Barcode not found in database
+        Alert.alert('Product Not Found', `Barcode ${barcode} not found in database. You can add it manually.`);
+        setDetectedFoods([
+          {
+            id: Date.now(),
+            name: 'Unknown Product',
+            brand: 'Scan Again',
+            upc: barcode,
+            servingSize: 'N/A',
+            score: 0,
+            warnings: ['Product not found in database'],
+          },
+        ]);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to look up barcode. Please try again.');
+      console.error('Barcode lookup error:', error);
+    }
+    setAnalyzing(false);
   };
 
   const saveMeal = () => {
