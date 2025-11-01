@@ -8,6 +8,7 @@ import {
   SafeAreaView,
   Alert,
   ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Camera, CameraView } from 'expo-camera';
@@ -22,6 +23,8 @@ export default function MealEntryScreen({ route }: any) {
   const [analyzing, setAnalyzing] = useState(false);
   const [detectedFoods, setDetectedFoods] = useState<any[]>([]);
   const [cameraActive, setCameraActive] = useState(false);
+  const [manualFoodName, setManualFoodName] = useState('');
+  const [manualPortionSize, setManualPortionSize] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -85,8 +88,7 @@ export default function MealEntryScreen({ route }: any) {
     } else if (method === 'batch') {
       simulateBatchAnalysis();
     } else if (method === 'manual') {
-      Alert.alert('Manual Entry', 'Manual entry feature coming soon!');
-      setInputMethod(null);
+      // Manual entry form will be shown in the render
     }
   };
 
@@ -204,10 +206,32 @@ export default function MealEntryScreen({ route }: any) {
     setDetectedFoods(detectedFoods.filter((f) => f.id !== foodId));
   };
 
+  const handleManualEntry = () => {
+    if (!manualFoodName.trim()) {
+      Alert.alert('Missing Information', 'Please enter a food name.');
+      return;
+    }
+
+    // Add the manually entered food to detected foods
+    const newFood = {
+      id: Date.now(),
+      name: manualFoodName.trim(),
+      portionSize: manualPortionSize.trim() || 'Not specified',
+      score: 1, // Default score for manual entries
+      warnings: [],
+    };
+
+    setDetectedFoods([...detectedFoods, newFood]);
+    setManualFoodName('');
+    setManualPortionSize('');
+  };
+
   const reset = () => {
     setInputMethod(null);
     setDetectedFoods([]);
     setCameraActive(false);
+    setManualFoodName('');
+    setManualPortionSize('');
   };
 
   if (cameraActive && hasPermission) {
@@ -302,6 +326,60 @@ export default function MealEntryScreen({ route }: any) {
                   </Text>
                 </View>
               </View>
+            </View>
+          </View>
+        )}
+
+        {/* Manual Entry Form */}
+        {inputMethod === 'manual' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>
+              {detectedFoods.length === 0 ? 'Enter Food Details' : 'Add Another Food'}
+            </Text>
+
+            <View style={styles.manualEntryForm}>
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Food Name *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="e.g., Grilled Chicken"
+                  value={manualFoodName}
+                  onChangeText={setManualFoodName}
+                  autoFocus
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Portion Size (Optional)</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="e.g., 6 oz, 1 cup, 2 pieces"
+                  value={manualPortionSize}
+                  onChangeText={setManualPortionSize}
+                />
+              </View>
+
+              <View style={styles.manualEntryActions}>
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={reset}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.addFoodButton}
+                  onPress={handleManualEntry}
+                >
+                  <Ionicons name="add-circle" size={20} color="white" />
+                  <Text style={styles.addFoodButtonText}>Add Food</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.helpText}>
+                {detectedFoods.length === 0
+                  ? 'You can add multiple foods one at a time, then save your meal when done.'
+                  : 'Add more foods or scroll down to save your meal.'}
+              </Text>
             </View>
           </View>
         )}
@@ -685,5 +763,71 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
+  },
+  manualEntryForm: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  formGroup: {
+    marginBottom: 20,
+  },
+  formLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 8,
+  },
+  textInput: {
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: '#1f2937',
+  },
+  manualEntryActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: '#e5e7eb',
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  addFoodButton: {
+    flex: 1,
+    backgroundColor: '#f59e0b',
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  addFoodButtonText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  helpText: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontStyle: 'italic',
+    textAlign: 'center',
   },
 });
