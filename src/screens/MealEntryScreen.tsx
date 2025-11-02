@@ -25,6 +25,8 @@ export default function MealEntryScreen({ route }: any) {
   const [cameraActive, setCameraActive] = useState(false);
   const [manualFoodName, setManualFoodName] = useState('');
   const [manualPortionSize, setManualPortionSize] = useState('');
+  const [batchMode, setBatchMode] = useState(false);
+  const [canScanAgain, setCanScanAgain] = useState(true);
 
   useEffect(() => {
     (async () => {
@@ -47,7 +49,7 @@ export default function MealEntryScreen({ route }: any) {
     {
       id: 'batch',
       name: 'Batch Scan',
-      description: 'Analyze multiple meals at once',
+      description: 'Scan multiple barcodes at once',
       icon: 'cube',
       color: '#8b5cf6',
     },
@@ -79,38 +81,92 @@ export default function MealEntryScreen({ route }: any) {
       });
 
       if (!result.canceled) {
-        simulatePhotoAnalysis();
+        const imageUri = result.assets[0].uri;
+        analyzePhoto(imageUri);
       } else {
         setInputMethod(null);
       }
     } else if (method === 'barcode') {
       setCameraActive(true);
+      setBatchMode(false);
     } else if (method === 'batch') {
-      simulateBatchAnalysis();
+      setCameraActive(true);
+      setBatchMode(true);
+      setCanScanAgain(true);
     } else if (method === 'manual') {
       // Manual entry form will be shown in the render
     }
   };
 
   const handleBarCodeScanned = ({ type, data }: BarcodeScanningResult) => {
-    setCameraActive(false);
-    simulateBarcodeScanning(data);
+    if (!canScanAgain) return; // Prevent rapid re-scanning
+
+    setCanScanAgain(false);
+
+    if (batchMode) {
+      // In batch mode, keep camera open and add to list
+      lookupBarcode(data, true);
+    } else {
+      // In single mode, close camera
+      setCameraActive(false);
+      lookupBarcode(data, false);
+    }
   };
 
-  const simulatePhotoAnalysis = () => {
+  const analyzePhoto = async (imageUri: string) => {
     setAnalyzing(true);
+
+    // TODO: Integrate with OpenAI Vision API or Google Cloud Vision
+    // For now, showing demo data with helpful message
+
+    // Example OpenAI Vision API integration:
+    // const OPENAI_API_KEY = 'your-api-key-here'; // Store in env or config
+    // if (OPENAI_API_KEY) {
+    //   try {
+    //     const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    //       method: 'POST',
+    //       headers: {
+    //         'Authorization': `Bearer ${OPENAI_API_KEY}`,
+    //         'Content-Type': 'application/json',
+    //       },
+    //       body: JSON.stringify({
+    //         model: 'gpt-4-vision-preview',
+    //         messages: [{
+    //           role: 'user',
+    //           content: [
+    //             { type: 'text', text: 'Identify all food items in this image with portion sizes.' },
+    //             { type: 'image_url', image_url: { url: imageUri } }
+    //           ]
+    //         }],
+    //         max_tokens: 500
+    //       })
+    //     });
+    //     const data = await response.json();
+    //     // Parse AI response and create food items
+    //   } catch (error) {
+    //     console.error('AI analysis failed:', error);
+    //   }
+    // }
+
+    // Demo data with informative message
     setTimeout(() => {
+      Alert.alert(
+        'Demo Mode',
+        'Photo analysis uses AI vision APIs (OpenAI Vision or Google Cloud Vision) which require an API key and cost money per request.\n\nShowing example data for now.',
+        [{ text: 'OK' }]
+      );
+
       setDetectedFoods([
         {
           id: Date.now(),
-          name: 'Grilled Salmon',
+          name: 'Grilled Salmon (Demo)',
           portionSize: '6 oz',
           score: 3,
           warnings: [],
         },
         {
           id: Date.now() + 1,
-          name: 'Steamed Broccoli',
+          name: 'Steamed Broccoli (Demo)',
           portionSize: '1.5 cups',
           score: 2,
           warnings: [],
@@ -120,26 +176,7 @@ export default function MealEntryScreen({ route }: any) {
     }, 2000);
   };
 
-  const simulateBatchAnalysis = () => {
-    setAnalyzing(true);
-    setTimeout(() => {
-      setDetectedFoods([
-        {
-          id: Date.now(),
-          name: 'Meal Prep Container 1',
-          items: [
-            { name: 'Grilled Chicken', portion: '6 oz', score: 1 },
-            { name: 'Sweet Potato', portion: '1 cup', score: 1 },
-            { name: 'Asparagus', portion: '1 cup', score: 2 },
-          ],
-          totalScore: 4,
-        },
-      ]);
-      setAnalyzing(false);
-    }, 2000);
-  };
-
-  const simulateBarcodeScanning = async (barcode: string) => {
+  const lookupBarcode = async (barcode: string, isBatchMode: boolean) => {
     setAnalyzing(true);
     try {
       // Call Open Food Facts API for real barcode lookup
@@ -148,35 +185,51 @@ export default function MealEntryScreen({ route }: any) {
 
       if (data.status === 1 && data.product) {
         const product = data.product;
-        setDetectedFoods([
-          {
-            id: Date.now(),
-            name: product.product_name || 'Unknown Product',
-            brand: product.brands || 'Unknown Brand',
-            upc: barcode,
-            servingSize: product.serving_size || 'See package',
-            score: 1, // Default score - you can add logic to calculate based on ingredients
-            warnings: [],
-          },
-        ]);
+        const newFood = {
+          id: Date.now(),
+          name: product.product_name || 'Unknown Product',
+          brand: product.brands || 'Unknown Brand',
+          upc: barcode,
+          servingSize: product.serving_size || 'See package',
+          score: 1, // Default score - you can add logic to calculate based on ingredients
+          warnings: [],
+        };
+
+        if (isBatchMode) {
+          // In batch mode, add to existing list
+          setDetectedFoods((prev) => [...prev, newFood]);
+          // Re-enable scanning after a short delay
+          setTimeout(() => setCanScanAgain(true), 1500);
+        } else {
+          // In single mode, replace list
+          setDetectedFoods([newFood]);
+        }
       } else {
         // Barcode not found in database
-        Alert.alert('Product Not Found', `Barcode ${barcode} not found in database. You can add it manually.`);
-        setDetectedFoods([
-          {
-            id: Date.now(),
-            name: 'Unknown Product',
-            brand: 'Scan Again',
-            upc: barcode,
-            servingSize: 'N/A',
-            score: 0,
-            warnings: ['Product not found in database'],
-          },
-        ]);
+        Alert.alert('Product Not Found', `Barcode ${barcode} not found in database.`);
+        if (isBatchMode) {
+          // In batch mode, allow scanning again without adding unknown product
+          setTimeout(() => setCanScanAgain(true), 1500);
+        } else {
+          setDetectedFoods([
+            {
+              id: Date.now(),
+              name: 'Unknown Product',
+              brand: 'Scan Again',
+              upc: barcode,
+              servingSize: 'N/A',
+              score: 0,
+              warnings: ['Product not found in database'],
+            },
+          ]);
+        }
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to look up barcode. Please try again.');
       console.error('Barcode lookup error:', error);
+      if (isBatchMode) {
+        setTimeout(() => setCanScanAgain(true), 1500);
+      }
     }
     setAnalyzing(false);
   };
@@ -232,6 +285,14 @@ export default function MealEntryScreen({ route }: any) {
     setCameraActive(false);
     setManualFoodName('');
     setManualPortionSize('');
+    setBatchMode(false);
+    setCanScanAgain(true);
+  };
+
+  const finishBatchScanning = () => {
+    setCameraActive(false);
+    setBatchMode(false);
+    setCanScanAgain(true);
   };
 
   if (cameraActive && hasPermission) {
@@ -254,11 +315,19 @@ export default function MealEntryScreen({ route }: any) {
         >
           <View style={styles.cameraOverlay}>
             <View style={styles.cameraHeader}>
+              {batchMode && detectedFoods.length > 0 && (
+                <View style={styles.batchCounter}>
+                  <Text style={styles.batchCounterText}>
+                    {detectedFoods.length} item{detectedFoods.length !== 1 ? 's' : ''} scanned
+                  </Text>
+                </View>
+              )}
               <TouchableOpacity
                 style={styles.cameraCloseButton}
                 onPress={() => {
                   setCameraActive(false);
                   setInputMethod(null);
+                  setBatchMode(false);
                 }}
               >
                 <Ionicons name="close" size={30} color="white" />
@@ -266,8 +335,25 @@ export default function MealEntryScreen({ route }: any) {
             </View>
             <View style={styles.scanArea}>
               <View style={styles.scanFrame} />
-              <Text style={styles.scanText}>Position barcode in frame</Text>
+              <Text style={styles.scanText}>
+                {batchMode
+                  ? detectedFoods.length === 0
+                    ? 'Scan first barcode'
+                    : 'Scan next barcode'
+                  : 'Position barcode in frame'}
+              </Text>
             </View>
+            {batchMode && detectedFoods.length > 0 && (
+              <View style={styles.batchActions}>
+                <TouchableOpacity
+                  style={styles.doneScanningButton}
+                  onPress={finishBatchScanning}
+                >
+                  <Ionicons name="checkmark-circle" size={24} color="white" />
+                  <Text style={styles.doneScanningText}>Done Scanning</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </CameraView>
       </View>
@@ -731,7 +817,20 @@ const styles = StyleSheet.create({
   },
   cameraHeader: {
     padding: 20,
-    alignItems: 'flex-end',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  batchCounter: {
+    backgroundColor: 'rgba(139, 92, 246, 0.9)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  batchCounterText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   cameraCloseButton: {
     width: 50,
@@ -763,6 +862,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
+  },
+  batchActions: {
+    padding: 20,
+    paddingBottom: 40,
+    alignItems: 'center',
+  },
+  doneScanningButton: {
+    backgroundColor: '#10b981',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderRadius: 30,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  doneScanningText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   manualEntryForm: {
     backgroundColor: 'white',
