@@ -3,6 +3,7 @@ import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import HomeScreen from './src/screens/HomeScreen';
+import ChallengeScreen from './src/screens/ChallengeScreen';
 import MealEntryScreen from './src/screens/MealEntryScreen';
 import ProgressScreen from './src/screens/ProgressScreen';
 import EducationScreen from './src/screens/EducationScreen';
@@ -17,6 +18,8 @@ export default function App() {
     switch (activeTab) {
       case 'Home':
         return <HomeScreen navigation={mockNavigation} />;
+      case 'Challenge':
+        return <ChallengeScreen />;
       case 'LogMeal':
         return <MealEntryScreen navigation={mockNavigation} />;
       case 'Progress':
@@ -32,6 +35,7 @@ export default function App() {
 
   const tabs = [
     { name: 'Home', label: 'Dashboard', icon: 'home', iconOutline: 'home-outline' },
+    { name: 'Challenge', label: '30-Day', icon: 'calendar', iconOutline: 'calendar-outline' },
     { name: 'LogMeal', label: 'Log Meal', icon: 'add-circle', iconOutline: 'add-circle-outline' },
     { name: 'Progress', label: 'Progress', icon: 'trending-up', iconOutline: 'trending-up-outline' },
     { name: 'Learn', label: 'Education', icon: 'book', iconOutline: 'book-outline' },
