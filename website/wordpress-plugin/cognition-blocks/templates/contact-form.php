@@ -12,7 +12,7 @@
                         <span class="contact-icon">📧</span>
                         <div>
                             <strong>Email</strong>
-                            <p>support@cognitionblocks.com</p>
+                            <p>support@cognitionblocksllc.com</p>
                         </div>
                     </div>
                     <div class="contact-item">

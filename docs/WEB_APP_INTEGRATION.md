@@ -68,7 +68,7 @@ interface Recommendation {
 // src/services/assessmentApi.ts
 export const assessmentApi = {
   async submitAssessment(answers: AssessmentAnswer[]): Promise<AssessmentResult> {
-    const response = await fetch('https://api.cognitionblocks.com/v1/assessment/submit', {
+    const response = await fetch('https://api.cognitionblocksllc.com/v1/assessment/submit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ answers })
@@ -77,7 +77,7 @@ export const assessmentApi = {
   },
 
   async getResults(userId: string): Promise<AssessmentResult> {
-    const response = await fetch(`https://api.cognitionblocks.com/v1/assessment/results/${userId}`);
+    const response = await fetch(`https://api.cognitionblocksllc.com/v1/assessment/results/${userId}`);
     return response.json();
   }
 };
@@ -204,7 +204,7 @@ interface ChallengeProgressResponse {
 // Mobile: src/services/syncService.ts
 
 class SyncService {
-  private baseUrl = 'https://api.cognitionblocks.com/v1';
+  private baseUrl = 'https://api.cognitionblocksllc.com/v1';
 
   async syncChallengeData(userId: string) {
     // Fetch latest from server
@@ -504,7 +504,7 @@ export default function AppNavigator() {
 
 ```typescript
 // src/services/api.ts
-const API_BASE_URL = 'https://api.cognitionblocks.com/v1';
+const API_BASE_URL = 'https://api.cognitionblocksllc.com/v1';
 
 export const api = {
   // Assessment

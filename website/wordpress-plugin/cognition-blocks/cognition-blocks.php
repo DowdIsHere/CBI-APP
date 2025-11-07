@@ -1,11 +1,11 @@
 <?php
 /**
  * Plugin Name: Cognition Blocks Platform
- * Plugin URI: https://cognitionblocks.com
+ * Plugin URI: https://cognitionblocksllc.com
  * Description: Complete web platform for Cognition Blocks LLC - Assessment tool, 30-Day Challenge, and marketing pages
  * Version: 1.0.0
  * Author: Cognition Blocks LLC
- * Author URI: https://cognitionblocks.com
+ * Author URI: https://cognitionblocksllc.com
  * License: GPL v2 or later
  * Text Domain: cognition-blocks
  */

@@ -378,7 +378,7 @@ grep -r "href=" website/marketing/index.html
 ## 📞 Support
 
 For questions or issues:
-- **Email**: support@cognitionblocks.com
+- **Email**: support@cognitionblocksllc.com
 - **Documentation**: See this README
 - **Issues**: GitHub Issues (if applicable)
 
