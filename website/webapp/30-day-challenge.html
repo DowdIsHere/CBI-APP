@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>30-Day Dowd Protocol Challenge - Cognition Blocks LLC</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e3e9f0 100%);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        /* Intro Screen */
+        .intro-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .intro-title {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #1e3a8a;
+            margin-bottom: 1rem;
+        }
+
+        .intro-subtitle {
+            font-size: 1.5rem;
+            color: #6b7280;
+        }
+
+        .hero-banner {
+            background: linear-gradient(135deg, #2563eb 0%, #10b981 100%);
+            border-radius: 1rem;
+            padding: 2rem;
+            color: white;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(37, 99, 235, 0.3);
+        }
+
+        .hero-banner h2 {
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .benefits-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .benefits-column h3 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .benefits-column ul {
+            list-style: none;
+        }
+
+        .benefits-column li {
+            margin-bottom: 0.5rem;
+        }
+
+        .phases-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .phase-card {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .phase-days {
+            color: #6b7280;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .phase-name {
+            font-size: 1.125rem;
+            font-weight: bold;
+            color: #1e3a8a;
+            margin-bottom: 0.5rem;
+        }
+
+        .phase-focus {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .warning-box {
+            background: #fef3c7;
+            border: 2px solid #fbbf24;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .warning-box h3 {
+            color: #92400e;
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+        }
+
+        .warning-box ul {
+            list-style: none;
+            color: #374151;
+        }
+
+        .warning-box li {
+            margin-bottom: 0.5rem;
+        }
+
+        .primary-btn {
+            background: linear-gradient(135deg, #2563eb 0%, #10b981 100%);
+            color: white;
+            padding: 1rem 3rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+
+        .primary-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
+        }
+
+        .primary-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Signup Screen */
+        .signup-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .signup-title {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1e3a8a;
+            margin-bottom: 2rem;
+        }
+
+        .signup-form {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-input,
+        .form-select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-input:focus,
+        .form-select:focus {
+            border-color: #2563eb;
+        }
+
+        /* Dashboard */
+        .dashboard-header {
+            margin-bottom: 2rem;
+        }
+
+        .dashboard-title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #1e3a8a;
+            margin-bottom: 0.5rem;
+        }
+
+        .dashboard-subtitle {
+            font-size: 1.25rem;
+            color: #6b7280;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+
+        .stat-detail {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-top: 0.5rem;
+        }
+
+        .today-focus {
+            background: linear-gradient(135deg, #2563eb 0%, #10b981 100%);
+            border-radius: 0.5rem;
+            padding: 2rem;
+            color: white;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(37, 99, 235, 0.3);
+        }
+
+        .today-focus h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .focus-content {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .focus-content p {
+            font-size: 1.125rem;
+        }
+
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .action-card {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+            border: none;
+            width: 100%;
+        }
+
+        .action-card:hover {
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .action-icon {
+            width: 2rem;
+            height: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .action-title {
+            font-size: 1.125rem;
+            font-weight: bold;
+            color: #111827;
+            margin-bottom: 0.5rem;
+        }
+
+        .action-description {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        /* Daily Protocol */
+        .back-btn {
+            background: none;
+            border: none;
+            color: #2563eb;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 1.5rem;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .back-btn:hover {
+            color: #1d4ed8;
+        }
+
+        .protocol-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .protocol-card {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .protocol-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .day-number {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+        }
+
+        .protocol-title {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1e3a8a;
+            margin-bottom: 0.5rem;
+        }
+
+        .protocol-focus {
+            font-size: 1.25rem;
+            color: #6b7280;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 1rem;
+        }
+
+        .tasks-list {
+            margin-bottom: 2rem;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .check-icon {
+            width: 1.5rem;
+            height: 1.5rem;
+            color: #10b981;
+            flex-shrink: 0;
+            margin-top: 0.25rem;
+        }
+
+        .info-box {
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .nutrition-box {
+            background: #ecfdf5;
+            border: 2px solid #6ee7b7;
+        }
+
+        .nutrition-box h3 {
+            color: #065f46;
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .education-box {
+            background: #eff6ff;
+            border: 2px solid #93c5fd;
+        }
+
+        .education-box h3 {
+            color: #1e3a8a;
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Check-in */
+        .checkin-container {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .checkin-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 1.5rem;
+        }
+
+        .checkin-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .checkin-question {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.75rem;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.5rem;
+        }
+
+        .option-btn {
+            padding: 0.75rem;
+            border: 2px solid #d1d5db;
+            border-radius: 0.5rem;
+            background: white;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .option-btn:hover {
+            border-color: #93c5fd;
+        }
+
+        .option-btn.selected {
+            border-color: #2563eb;
+            background: #eff6ff;
+            color: #1e40af;
+        }
+
+        /* Progress View */
+        .progress-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .progress-title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #1e3a8a;
+            margin-bottom: 2rem;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .metric-name {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 0.5rem;
+            text-transform: capitalize;
+        }
+
+        .metric-score {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #2563eb;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .history-card {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .history-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 1.5rem;
+        }
+
+        .history-entry {
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .history-day {
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 0.5rem;
+        }
+
+        .history-scores {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .score-item {
+            text-align: center;
+        }
+
+        .score-label {
+            color: #6b7280;
+            font-size: 0.75rem;
+            margin-bottom: 0.25rem;
+            text-transform: capitalize;
+        }
+
+        .score-value {
+            font-weight: bold;
+        }
+
+        .score-value.good {
+            color: #10b981;
+        }
+
+        .score-value.medium {
+            color: #f59e0b;
+        }
+
+        .score-value.poor {
+            color: #ef4444;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .intro-title {
+                font-size: 2rem;
+            }
+
+            .intro-subtitle {
+                font-size: 1.125rem;
+            }
+
+            .benefits-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .options-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .history-scores {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Intro Screen -->
+    <div id="introScreen">
+        <div class="container">
+            <div class="intro-header">
+                <h1 class="intro-title">The 30-Day Dowd Protocol Challenge</h1>
+                <p class="intro-subtitle">Optimize Your Cellular Energy. Transform Your Life.</p>
+            </div>
+
+            <div class="hero-banner">
+                <h2>What You'll Achieve:</h2>
+                <div class="benefits-grid">
+                    <div class="benefits-column">
+                        <h3>✓ Physical Changes</h3>
+                        <ul>
+                            <li>• Weight loss (typically 8-15 lbs)</li>
+                            <li>• Increased energy</li>
+                            <li>• Better sleep quality</li>
+                            <li>• Reduced inflammation</li>
+                            <li>• Clearer skin</li>
+                        </ul>
+                    </div>
+                    <div class="benefits-column">
+                        <h3>✓ Cognitive Changes</h3>
+                        <ul>
+                            <li>• Improved focus and clarity</li>
+                            <li>• Stable mood</li>
+                            <li>• Reduced brain fog</li>
+                            <li>• Better stress resilience</li>
+                            <li>• Enhanced mental performance</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="phases-grid" id="phasesGrid"></div>
+
+            <div class="warning-box">
+                <h3>⚠️ Important Notes:</h3>
+                <ul>
+                    <li>• This protocol is educational. Consult healthcare providers before major dietary changes</li>
+                    <li>• Not medical advice. Individual results vary</li>
+                    <li>• If you have existing health conditions, work with your doctor</li>
+                    <li>• This complements, never replaces, professional medical care</li>
+                </ul>
+            </div>
+
+            <div style="text-align: center;">
+                <button class="primary-btn" onclick="showSignup()">Start Your 30-Day Challenge →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Signup Screen -->
+    <div id="signupScreen" class="hidden">
+        <div class="container signup-container">
+            <h2 class="signup-title">Let's Get Started</h2>
+
+            <div class="signup-form">
+                <div class="form-group">
+                    <label class="form-label">Your Name</label>
+                    <input type="text" id="userName" class="form-input" placeholder="Enter your name">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Email (for progress tracking)</label>
+                    <input type="email" id="userEmail" class="form-input" placeholder="your@email.com">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Current Weight (optional)</label>
+                    <input type="number" id="userWeight" class="form-input" placeholder="lbs">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Primary Goal</label>
+                    <select id="userGoal" class="form-select">
+                        <option value="">Select your primary goal...</option>
+                        <option value="weight">Weight Loss</option>
+                        <option value="energy">Increase Energy</option>
+                        <option value="focus">Improve Focus & Clarity</option>
+                        <option value="sleep">Better Sleep</option>
+                        <option value="mood">Mood Stability</option>
+                        <option value="overall">Overall Health Optimization</option>
+                    </select>
+                </div>
+
+                <button class="primary-btn" style="width: 100%;" onclick="startChallenge()" id="startBtn" disabled>
+                    Begin Day 1 →
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Screen -->
+    <div id="dashboardScreen" class="hidden">
+        <div class="container">
+            <div class="dashboard-header">
+                <h1 class="dashboard-title">Welcome back, <span id="dashboardName"></span>!</h1>
+                <p class="dashboard-subtitle">Day <span id="dashboardDay"></span> of 30</p>
+            </div>
+
+            <div class="stats-grid" id="statsGrid"></div>
+
+            <div class="today-focus">
+                <h2 id="todayFocusTitle">Today's Focus</h2>
+                <div class="focus-content">
+                    <p id="todayFocusContent"></p>
+                </div>
+                <button class="primary-btn" onclick="showDaily()" style="background: white; color: #2563eb;">
+                    Start Today's Protocol →
+                </button>
+            </div>
+
+            <div class="actions-grid" id="actionsGrid"></div>
+        </div>
+    </div>
+
+    <!-- Daily Protocol Screen -->
+    <div id="dailyScreen" class="hidden">
+        <div class="container protocol-container">
+            <button class="back-btn" onclick="showDashboard()">← Back to Dashboard</button>
+
+            <div class="protocol-card">
+                <div class="protocol-header">
+                    <div class="day-number">Day <span id="protocolDayNumber"></span> of 30</div>
+                    <h1 class="protocol-title" id="protocolTitle"></h1>
+                    <p class="protocol-focus" id="protocolFocusText"></p>
+                </div>
+
+                <div class="tasks-list">
+                    <h2 class="section-title">Today's Tasks</h2>
+                    <div id="tasksList"></div>
+                </div>
+
+                <div class="info-box nutrition-box">
+                    <h3>🍽️ Nutrition Focus</h3>
+                    <p id="nutritionText"></p>
+                </div>
+
+                <div class="info-box education-box">
+                    <h3>📚 Daily Education</h3>
+                    <p id="educationText"></p>
+                </div>
+            </div>
+
+            <div class="checkin-container">
+                <h2 class="checkin-title">Daily Check-In</h2>
+                <div id="checkinForm"></div>
+
+                <button class="primary-btn" style="width: 100%;" onclick="completeDay()" id="completeDayBtn" disabled>
+                    Complete Day & Continue →
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Screen -->
+    <div id="progressScreen" class="hidden">
+        <div class="container progress-container">
+            <button class="back-btn" onclick="showDashboard()">← Back to Dashboard</button>
+
+            <h1 class="progress-title">Your Progress</h1>
+
+            <div class="metrics-grid" id="metricsGrid"></div>
+
+            <div class="history-card">
+                <h2 class="history-title">Daily Check-In History</h2>
+                <div id="historyList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="30-day-challenge.js"></script>
+</body>
+</html>
