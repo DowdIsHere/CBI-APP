@@ -22,9 +22,9 @@ cp ../marketing/script.js "$ASSETS_DIR/marketing/"
 
 # Copy webapp assets
 echo "📋 Copying webapp assets..."
-cp ../webapp/assessment.css "$ASSETS_DIR/webapp/"
-cp ../webapp/assessment.js "$ASSETS_DIR/webapp/"
-cp ../webapp/challenge.css "$ASSETS_DIR/webapp/"
+cp ../webapp/cb-assessment.html "$ASSETS_DIR/webapp/"
+cp ../webapp/cb-assessment.js "$ASSETS_DIR/webapp/"
+cp ../webapp/challenge.html "$ASSETS_DIR/webapp/"
 cp ../webapp/challenge.js "$ASSETS_DIR/webapp/"
 
 # Create template files
@@ -262,11 +262,42 @@ cat > "$TEMPLATES_DIR/contact-form.php" << 'EOF'
 </section>
 EOF
 
-# Assessment Full Template
-echo "<?php include(plugin_dir_path(__DIR__) . 'assets/webapp/assessment.html'); ?>" > "$TEMPLATES_DIR/assessment-full.php"
+# Assessment Full Template - Embed the complete HTML
+cat > "$TEMPLATES_DIR/assessment-full.php" << 'EOFASSESSMENT'
+<?php
+// Load and display the complete assessment HTML
+$assessment_html_path = plugin_dir_path(__DIR__) . 'assets/webapp/cb-assessment.html';
+$plugin_url = plugin_dir_url(__DIR__);
 
-# Challenge Full Template
-echo "<?php include(plugin_dir_path(__DIR__) . 'assets/webapp/challenge.html'); ?>" > "$TEMPLATES_DIR/challenge-full.php"
+if (file_exists($assessment_html_path)) {
+    $html = file_get_contents($assessment_html_path);
+    // Replace the relative script src with absolute plugin URL
+    $html = str_replace('src="cb-assessment.js"', 'src="' . $plugin_url . 'assets/webapp/cb-assessment.js"', $html);
+    echo $html;
+} else {
+    echo '<p>Assessment not found. Please ensure the plugin is properly installed.</p>';
+}
+?>
+EOFASSESSMENT
+
+# Challenge Full Template - Embed the HTML directly
+cat > "$TEMPLATES_DIR/challenge-full.php" << 'EOFCHALLENGE'
+<?php
+// Enqueue the challenge CSS and JS inline for standalone functionality
+$plugin_url = plugin_dir_url(__DIR__);
+?>
+<link rel="stylesheet" href="<?php echo $plugin_url; ?>assets/webapp/challenge.css">
+<?php
+// Read and output the challenge HTML
+$challenge_html = file_get_contents(plugin_dir_path(__DIR__) . 'assets/webapp/challenge.html');
+// Extract body content (everything between <body> and </body>)
+preg_match('/<body[^>]*>(.*?)<\/body>/is', $challenge_html, $matches);
+if (isset($matches[1])) {
+    echo $matches[1];
+}
+?>
+<script src="<?php echo $plugin_url; ?>assets/webapp/challenge.js"></script>
+EOFCHALLENGE
 
 # Create readme.txt for WordPress.org format
 cat > "$PLUGIN_DIR/readme.txt" << 'EOF'
