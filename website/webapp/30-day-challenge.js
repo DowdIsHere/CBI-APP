@@ -709,6 +709,8 @@ function renderCheckInForm() {
                     return `
                         <button
                             class="option-btn ${isSelected ? 'selected' : ''}"
+                            data-metric="${metric}"
+                            data-value="${value}"
                             onclick="handleCheckIn('${metric}', ${value})"
                         >
                             ${option}
@@ -724,6 +726,8 @@ function renderCheckInForm() {
 }
 
 function handleCheckIn(metric, value) {
+    console.log(`Check-in: Day ${challengeState.currentDay}, Metric: ${metric}, Value: ${value}`);
+
     if (!challengeState.dailyEntries[challengeState.currentDay]) {
         challengeState.dailyEntries[challengeState.currentDay] = {};
     }
@@ -732,7 +736,16 @@ function handleCheckIn(metric, value) {
     challengeState.dailyEntries[challengeState.currentDay].completedAt = new Date().toISOString();
 
     saveToLocalStorage();
-    renderCheckInForm();
+
+    // Update the UI to show selection
+    const buttons = document.querySelectorAll(`[data-metric="${metric}"]`);
+    buttons.forEach(btn => btn.classList.remove('selected'));
+    const selectedBtn = document.querySelector(`[data-metric="${metric}"][data-value="${value}"]`);
+    if (selectedBtn) {
+        selectedBtn.classList.add('selected');
+    }
+
+    updateCompleteDayButton();
 }
 
 function updateCompleteDayButton() {
@@ -740,8 +753,17 @@ function updateCompleteDayButton() {
     const completedMetrics = Object.keys(currentDayEntry).filter(key => key !== 'completedAt').length;
     const totalMetrics = Object.keys(dailyCheckIn).length;
 
+    console.log(`Button update - Day ${challengeState.currentDay}: ${completedMetrics}/${totalMetrics} metrics completed`);
+    console.log('Current day entry:', currentDayEntry);
+
     const completeBtn = document.getElementById('completeDayBtn');
+    if (!completeBtn) {
+        console.error('Complete button not found!');
+        return;
+    }
+
     completeBtn.disabled = completedMetrics < totalMetrics;
+    console.log('Button disabled:', completeBtn.disabled);
 
     if (challengeState.currentDay === 30) {
         completeBtn.textContent = 'Complete Challenge! 🎉';
@@ -751,12 +773,16 @@ function updateCompleteDayButton() {
 }
 
 function completeDay() {
+    console.log(`Completing Day ${challengeState.currentDay}...`);
+
     if (challengeState.currentDay < 30) {
         challengeState.currentDay++;
+        console.log(`Advanced to Day ${challengeState.currentDay}`);
         saveToLocalStorage();
         showDashboard();
     } else {
         // Challenge complete!
+        console.log('Challenge completed!');
         alert('🎉 Congratulations! You\'ve completed the 30-Day Dowd Protocol Challenge!\n\nYour body has been transformed at the cellular level. You\'ve optimized your foundation. Now elevate everything!');
         showProgress();
     }
