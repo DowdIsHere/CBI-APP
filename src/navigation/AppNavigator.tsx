@@ -6,6 +6,7 @@ import MealEntryScreen from '../screens/MealEntryScreen';
 import ProgressScreen from '../screens/ProgressScreen';
 import EducationScreen from '../screens/EducationScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import ReaderScreen from '../screens/ReaderScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -22,8 +23,10 @@ export default function AppNavigator() {
             iconName = focused ? 'add-circle' : 'add-circle-outline';
           } else if (route.name === 'Progress') {
             iconName = focused ? 'trending-up' : 'trending-up-outline';
+          } else if (route.name === 'Reader') {
+            iconName = focused ? 'book-sharp' : 'book-outline';
           } else if (route.name === 'Learn') {
-            iconName = focused ? 'book' : 'book-outline';
+            iconName = focused ? 'school' : 'school-outline';
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
           } else {
@@ -57,6 +60,11 @@ export default function AppNavigator() {
         name="Progress"
         component={ProgressScreen}
         options={{ title: 'Progress' }}
+      />
+      <Tab.Screen
+        name="Reader"
+        component={ReaderScreen}
+        options={{ title: '4Me Reader' }}
       />
       <Tab.Screen
         name="Learn"
