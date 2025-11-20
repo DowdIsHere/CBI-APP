@@ -1,13 +1,44 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import HomeScreen from '../screens/HomeScreen';
 import MealEntryScreen from '../screens/MealEntryScreen';
 import ProgressScreen from '../screens/ProgressScreen';
 import EducationScreen from '../screens/EducationScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import LessonScreen from '../screens/LessonScreen';
 
 const Tab = createBottomTabNavigator();
+const LearnStack = createStackNavigator();
+
+// Learn Stack Navigator
+function LearnStackNavigator() {
+  return (
+    <LearnStack.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: '#1e3a8a',
+        },
+        headerTintColor: '#fff',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+      }}
+    >
+      <LearnStack.Screen
+        name="EducationMain"
+        component={EducationScreen}
+        options={{ title: 'Education' }}
+      />
+      <LearnStack.Screen
+        name="Lesson"
+        component={LessonScreen}
+        options={{ headerShown: false }}
+      />
+    </LearnStack.Navigator>
+  );
+}
 
 export default function AppNavigator() {
   return (
@@ -60,8 +91,8 @@ export default function AppNavigator() {
       />
       <Tab.Screen
         name="Learn"
-        component={EducationScreen}
-        options={{ title: 'Education' }}
+        component={LearnStackNavigator}
+        options={{ title: 'Education', headerShown: false }}
       />
       <Tab.Screen
         name="Profile"
