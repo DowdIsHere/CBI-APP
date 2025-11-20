@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function EducationScreen() {
+export default function EducationScreen({ navigation }: any) {
   const currentWeek = {
     title: 'Week 1: Foundation',
     lesson: 'Meet Your Enteric Nervous System',
@@ -24,7 +24,8 @@ export default function EducationScreen() {
       duration: '20 min',
       icon: 'school',
       color: '#3b82f6',
-      completed: true,
+      completed: false,
+      firstLessonId: 1,
     },
     {
       id: 2,
@@ -34,6 +35,7 @@ export default function EducationScreen() {
       icon: 'cog',
       color: '#8b5cf6',
       completed: false,
+      firstLessonId: 5,
     },
     {
       id: 3,
@@ -101,7 +103,10 @@ export default function EducationScreen() {
               ]}
             />
           </View>
-          <TouchableOpacity style={styles.continueButton}>
+          <TouchableOpacity
+            style={styles.continueButton}
+            onPress={() => navigation.navigate('Lesson', { lessonId: 1 })}
+          >
             <Text style={styles.continueButtonText}>Continue Learning</Text>
             <Ionicons name="arrow-forward" size={20} color="white" />
           </TouchableOpacity>
@@ -111,7 +116,13 @@ export default function EducationScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Learning Modules</Text>
           {modules.map((module) => (
-            <TouchableOpacity key={module.id} style={styles.moduleCard}>
+            <TouchableOpacity
+              key={module.id}
+              style={styles.moduleCard}
+              onPress={() =>
+                navigation.navigate('Lesson', { lessonId: module.firstLessonId })
+              }
+            >
               <View
                 style={[styles.moduleIcon, { backgroundColor: module.color }]}
               >
@@ -135,8 +146,13 @@ export default function EducationScreen() {
         {/* Quick Reads */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick Reads</Text>
+          <Text style={styles.comingSoonText}>Coming soon! 📚</Text>
           {articles.map((article) => (
-            <TouchableOpacity key={article.id} style={styles.articleCard}>
+            <TouchableOpacity
+              key={article.id}
+              style={[styles.articleCard, styles.articleCardDisabled]}
+              disabled
+            >
               <View style={styles.articleIcon}>
                 <Ionicons
                   name={article.icon as any}
@@ -193,22 +209,23 @@ export default function EducationScreen() {
         {/* FAQs */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Frequently Asked</Text>
+          <Text style={styles.comingSoonText}>Expanding FAQs soon! 💬</Text>
 
-          <TouchableOpacity style={styles.faqCard}>
+          <TouchableOpacity style={[styles.faqCard, styles.faqCardDisabled]} disabled>
             <Text style={styles.faqQuestion}>
               How quickly will I see results?
             </Text>
             <Ionicons name="chevron-down" size={20} color="#6b7280" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.faqCard}>
+          <TouchableOpacity style={[styles.faqCard, styles.faqCardDisabled]} disabled>
             <Text style={styles.faqQuestion}>
               What makes the Dowd Protocol different?
             </Text>
             <Ionicons name="chevron-down" size={20} color="#6b7280" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.faqCard}>
+          <TouchableOpacity style={[styles.faqCard, styles.faqCardDisabled]} disabled>
             <Text style={styles.faqQuestion}>
               Can I follow this with dietary restrictions?
             </Text>
@@ -420,5 +437,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1f2937',
     flex: 1,
+  },
+  comingSoonText: {
+    fontSize: 13,
+    color: '#9ca3af',
+    fontStyle: 'italic',
+    marginBottom: 12,
+  },
+  articleCardDisabled: {
+    opacity: 0.5,
+  },
+  faqCardDisabled: {
+    opacity: 0.5,
   },
 });
