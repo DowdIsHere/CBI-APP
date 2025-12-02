@@ -52,6 +52,13 @@ export interface Settings {
   remindersEnabled: boolean;
 }
 
+export interface LearningProgress {
+  completedLessons: string[]; // Format: "moduleId-lessonId"
+  completedArticles: number[];
+  currentModuleId: number;
+  currentLessonId: number;
+}
+
 export interface WeeklyData {
   day: string;
   score: number;
@@ -77,6 +84,7 @@ interface AppContextType {
   weeklyData: WeeklyData[];
   monthlyData: MonthlyData[];
   yearlyData: YearlyData[];
+  learningProgress: LearningProgress;
   isLoading: boolean;
 
   // Actions
@@ -89,6 +97,9 @@ interface AppContextType {
   removeSensitivity: (sensitivity: string) => void;
   getTodaysMeals: () => Meal[];
   refreshStats: () => void;
+  completeLesson: (moduleId: number, lessonId: number) => void;
+  completeArticle: (articleId: number) => void;
+  setCurrentLesson: (moduleId: number, lessonId: number) => void;
 }
 
 const defaultProfile: UserProfile = {
@@ -103,6 +114,13 @@ const defaultProfile: UserProfile = {
 const defaultSettings: Settings = {
   notificationsEnabled: true,
   remindersEnabled: true,
+};
+
+const defaultLearningProgress: LearningProgress = {
+  completedLessons: ['1-1', '1-2', '1-3'], // First 3 lessons of module 1 completed
+  completedArticles: [],
+  currentModuleId: 1,
+  currentLessonId: 4,
 };
 
 const getDefaultStats = (): UserStats => ({
@@ -269,6 +287,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [weeklyData, setWeeklyData] = useState<WeeklyData[]>([]);
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
   const [yearlyData, setYearlyData] = useState<YearlyData[]>([]);
+  const [learningProgress, setLearningProgress] = useState<LearningProgress>(defaultLearningProgress);
   const [isLoading, setIsLoading] = useState(true);
 
   // Load data from AsyncStorage on mount
@@ -287,10 +306,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const loadData = async () => {
     try {
-      const [mealsData, profileData, settingsData] = await Promise.all([
+      const [mealsData, profileData, settingsData, learningData] = await Promise.all([
         AsyncStorage.getItem('meals'),
         AsyncStorage.getItem('userProfile'),
         AsyncStorage.getItem('settings'),
+        AsyncStorage.getItem('learningProgress'),
       ]);
 
       if (mealsData) {
@@ -349,6 +369,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
       if (settingsData) {
         setSettings(JSON.parse(settingsData));
+      }
+
+      if (learningData) {
+        setLearningProgress(JSON.parse(learningData));
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -437,6 +461,39 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setYearlyData(generateYearlyData(meals));
   };
 
+  const completeLesson = (moduleId: number, lessonId: number) => {
+    const lessonKey = `${moduleId}-${lessonId}`;
+    if (!learningProgress.completedLessons.includes(lessonKey)) {
+      const updatedProgress = {
+        ...learningProgress,
+        completedLessons: [...learningProgress.completedLessons, lessonKey],
+      };
+      setLearningProgress(updatedProgress);
+      saveData('learningProgress', updatedProgress);
+    }
+  };
+
+  const completeArticle = (articleId: number) => {
+    if (!learningProgress.completedArticles.includes(articleId)) {
+      const updatedProgress = {
+        ...learningProgress,
+        completedArticles: [...learningProgress.completedArticles, articleId],
+      };
+      setLearningProgress(updatedProgress);
+      saveData('learningProgress', updatedProgress);
+    }
+  };
+
+  const setCurrentLesson = (moduleId: number, lessonId: number) => {
+    const updatedProgress = {
+      ...learningProgress,
+      currentModuleId: moduleId,
+      currentLessonId: lessonId,
+    };
+    setLearningProgress(updatedProgress);
+    saveData('learningProgress', updatedProgress);
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -447,6 +504,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         weeklyData,
         monthlyData,
         yearlyData,
+        learningProgress,
         isLoading,
         addMeal,
         updateProfile,
@@ -457,6 +515,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         removeSensitivity,
         getTodaysMeals,
         refreshStats,
+        completeLesson,
+        completeArticle,
+        setCurrentLesson,
       }}
     >
       {children}
