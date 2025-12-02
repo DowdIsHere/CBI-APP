@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,24 +7,72 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Switch,
+  Alert,
+  TextInput,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useApp } from '../context/AppContext';
 
 export default function ProfileScreen() {
-  const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
-  const [remindersEnabled, setRemindersEnabled] = React.useState(true);
+  const {
+    userProfile,
+    userStats,
+    settings,
+    updateSettings,
+    addAllergy,
+    removeAllergy,
+    addSensitivity,
+    removeSensitivity,
+  } = useApp();
 
-  const userProfile = {
-    name: 'John Doe',
-    email: 'john@example.com',
-    condition: 'Multiple Sclerosis',
-    joinDate: 'Jan 2025',
-    totalMeals: 45,
-    streak: 7,
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addType, setAddType] = useState<'allergy' | 'sensitivity'>('allergy');
+  const [newItem, setNewItem] = useState('');
+
+  const handleAddItem = () => {
+    if (!newItem.trim()) {
+      Alert.alert('Error', 'Please enter an item');
+      return;
+    }
+
+    if (addType === 'allergy') {
+      addAllergy(newItem.trim());
+    } else {
+      addSensitivity(newItem.trim());
+    }
+
+    setNewItem('');
+    setShowAddModal(false);
   };
 
-  const allergies = ['Shellfish', 'Tree Nuts'];
-  const sensitivities = ['Nightshades', 'Dairy', 'Gluten'];
+  const handleRemoveAllergy = (allergy: string) => {
+    Alert.alert(
+      'Remove Allergy',
+      `Are you sure you want to remove "${allergy}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Remove', style: 'destructive', onPress: () => removeAllergy(allergy) },
+      ]
+    );
+  };
+
+  const handleRemoveSensitivity = (sensitivity: string) => {
+    Alert.alert(
+      'Remove Sensitivity',
+      `Are you sure you want to remove "${sensitivity}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Remove', style: 'destructive', onPress: () => removeSensitivity(sensitivity) },
+      ]
+    );
+  };
+
+  const openAddModal = (type: 'allergy' | 'sensitivity') => {
+    setAddType(type);
+    setNewItem('');
+    setShowAddModal(true);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -40,12 +88,12 @@ export default function ProfileScreen() {
           <Text style={styles.userEmail}>{userProfile.email}</Text>
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{userProfile.totalMeals}</Text>
+              <Text style={styles.statValue}>{userStats.totalMeals}</Text>
               <Text style={styles.statLabel}>Meals</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{userProfile.streak}</Text>
+              <Text style={styles.statValue}>{userStats.streak}</Text>
               <Text style={styles.statLabel}>Day Streak</Text>
             </View>
             <View style={styles.statDivider} />
@@ -79,13 +127,20 @@ export default function ProfileScreen() {
             <View style={styles.restrictionSection}>
               <Text style={styles.restrictionTitle}>Allergies</Text>
               <View style={styles.tagsContainer}>
-                {allergies.map((allergy, idx) => (
-                  <View key={idx} style={[styles.tag, styles.allergyTag]}>
+                {userProfile.allergies.map((allergy, idx) => (
+                  <TouchableOpacity
+                    key={idx}
+                    style={[styles.tag, styles.allergyTag]}
+                    onPress={() => handleRemoveAllergy(allergy)}
+                  >
                     <Text style={styles.allergyTagText}>{allergy}</Text>
                     <Ionicons name="close-circle" size={16} color="#dc2626" />
-                  </View>
+                  </TouchableOpacity>
                 ))}
-                <TouchableOpacity style={styles.addTag}>
+                <TouchableOpacity
+                  style={styles.addTag}
+                  onPress={() => openAddModal('allergy')}
+                >
                   <Ionicons name="add" size={16} color="#6b7280" />
                   <Text style={styles.addTagText}>Add</Text>
                 </TouchableOpacity>
@@ -97,15 +152,22 @@ export default function ProfileScreen() {
             <View style={styles.restrictionSection}>
               <Text style={styles.restrictionTitle}>Sensitivities</Text>
               <View style={styles.tagsContainer}>
-                {sensitivities.map((sensitivity, idx) => (
-                  <View key={idx} style={[styles.tag, styles.sensitivityTag]}>
+                {userProfile.sensitivities.map((sensitivity, idx) => (
+                  <TouchableOpacity
+                    key={idx}
+                    style={[styles.tag, styles.sensitivityTag]}
+                    onPress={() => handleRemoveSensitivity(sensitivity)}
+                  >
                     <Text style={styles.sensitivityTagText}>
                       {sensitivity}
                     </Text>
                     <Ionicons name="close-circle" size={16} color="#ea580c" />
-                  </View>
+                  </TouchableOpacity>
                 ))}
-                <TouchableOpacity style={styles.addTag}>
+                <TouchableOpacity
+                  style={styles.addTag}
+                  onPress={() => openAddModal('sensitivity')}
+                >
                   <Ionicons name="add" size={16} color="#6b7280" />
                   <Text style={styles.addTagText}>Add</Text>
                 </TouchableOpacity>
@@ -125,10 +187,12 @@ export default function ProfileScreen() {
                 <Text style={styles.settingLabel}>Push Notifications</Text>
               </View>
               <Switch
-                value={notificationsEnabled}
-                onValueChange={setNotificationsEnabled}
+                value={settings.notificationsEnabled}
+                onValueChange={(value) =>
+                  updateSettings({ notificationsEnabled: value })
+                }
                 trackColor={{ false: '#d1d5db', true: '#93c5fd' }}
-                thumbColor={notificationsEnabled ? '#3b82f6' : '#f3f4f6'}
+                thumbColor={settings.notificationsEnabled ? '#3b82f6' : '#f3f4f6'}
               />
             </View>
 
@@ -140,10 +204,12 @@ export default function ProfileScreen() {
                 <Text style={styles.settingLabel}>Meal Reminders</Text>
               </View>
               <Switch
-                value={remindersEnabled}
-                onValueChange={setRemindersEnabled}
+                value={settings.remindersEnabled}
+                onValueChange={(value) =>
+                  updateSettings({ remindersEnabled: value })
+                }
                 trackColor={{ false: '#d1d5db', true: '#c4b5fd' }}
-                thumbColor={remindersEnabled ? '#8b5cf6' : '#f3f4f6'}
+                thumbColor={settings.remindersEnabled ? '#8b5cf6' : '#f3f4f6'}
               />
             </View>
           </View>
@@ -189,6 +255,43 @@ export default function ProfileScreen() {
           <Text style={styles.footerVersion}>Version 1.0.0</Text>
         </View>
       </ScrollView>
+
+      {/* Add Modal */}
+      <Modal
+        visible={showAddModal}
+        animationType="slide"
+        transparent={true}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>
+              Add {addType === 'allergy' ? 'Allergy' : 'Sensitivity'}
+            </Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder={`Enter ${addType}...`}
+              value={newItem}
+              onChangeText={setNewItem}
+              autoFocus
+              placeholderTextColor="#9ca3af"
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => setShowAddModal(false)}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalAddButton}
+                onPress={handleAddItem}
+              >
+                <Text style={styles.modalAddText}>Add</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -424,5 +527,62 @@ const styles = StyleSheet.create({
   footerVersion: {
     fontSize: 12,
     color: '#9ca3af',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 24,
+    width: '100%',
+    maxWidth: 320,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  modalInput: {
+    backgroundColor: '#f3f4f6',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: '#1f2937',
+    marginBottom: 16,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalCancelButton: {
+    flex: 1,
+    backgroundColor: '#e5e7eb',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  modalAddButton: {
+    flex: 1,
+    backgroundColor: '#3b82f6',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalAddText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'white',
   },
 });

@@ -8,20 +8,55 @@ import {
   SafeAreaView,
   Alert,
   ActivityIndicator,
+  TextInput,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Camera, CameraView } from 'expo-camera';
 import { BarcodeScanningResult } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
+import { useApp, FoodItem } from '../context/AppContext';
 
-export default function MealEntryScreen({ route }: any) {
+// Common foods database for manual entry suggestions
+const commonFoods = [
+  { name: 'Wild Salmon', category: 'Protein', score: 3 },
+  { name: 'Grilled Chicken', category: 'Protein', score: 2 },
+  { name: 'Sardines', category: 'Protein', score: 3 },
+  { name: 'Grass-fed Beef', category: 'Protein', score: 2 },
+  { name: 'Eggs (Pasture-raised)', category: 'Protein', score: 2 },
+  { name: 'Broccoli', category: 'Vegetable', score: 3 },
+  { name: 'Kale', category: 'Vegetable', score: 3 },
+  { name: 'Spinach', category: 'Vegetable', score: 3 },
+  { name: 'Brussels Sprouts', category: 'Vegetable', score: 3 },
+  { name: 'Cauliflower', category: 'Vegetable', score: 2 },
+  { name: 'Asparagus', category: 'Vegetable', score: 2 },
+  { name: 'Sweet Potato', category: 'Carbs', score: 2 },
+  { name: 'Blueberries', category: 'Fruit', score: 2 },
+  { name: 'Avocado', category: 'Healthy Fat', score: 3 },
+  { name: 'Olive Oil', category: 'Healthy Fat', score: 3 },
+  { name: 'Almonds', category: 'Nuts', score: 2 },
+  { name: 'Walnuts', category: 'Nuts', score: 2 },
+  { name: 'Sauerkraut', category: 'Fermented', score: 3 },
+  { name: 'Kimchi', category: 'Fermented', score: 3 },
+];
+
+export default function MealEntryScreen({ route, navigation }: any) {
+  const { addMeal, userProfile } = useApp();
   const [inputMethod, setInputMethod] = useState<string | null>(
     route?.params?.method || null
   );
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
-  const [detectedFoods, setDetectedFoods] = useState<any[]>([]);
+  const [detectedFoods, setDetectedFoods] = useState<FoodItem[]>([]);
   const [cameraActive, setCameraActive] = useState(false);
+
+  // Manual entry state
+  const [showManualEntry, setShowManualEntry] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [customFoodName, setCustomFoodName] = useState('');
+  const [customFoodPortion, setCustomFoodPortion] = useState('');
+  const [customFoodScore, setCustomFoodScore] = useState('2');
+  const [mealName, setMealName] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -32,6 +67,13 @@ export default function MealEntryScreen({ route }: any) {
       setHasPermission(cameraStatus === 'granted');
     })();
   }, []);
+
+  useEffect(() => {
+    if (route?.params?.method === 'manual') {
+      setShowManualEntry(true);
+      setInputMethod('manual');
+    }
+  }, [route?.params?.method]);
 
   const inputMethods = [
     {
@@ -85,8 +127,7 @@ export default function MealEntryScreen({ route }: any) {
     } else if (method === 'batch') {
       simulateBatchAnalysis();
     } else if (method === 'manual') {
-      Alert.alert('Manual Entry', 'Manual entry feature coming soon!');
-      setInputMethod(null);
+      setShowManualEntry(true);
     }
   };
 
@@ -131,6 +172,7 @@ export default function MealEntryScreen({ route }: any) {
             { name: 'Asparagus', portion: '1 cup', score: 2 },
           ],
           totalScore: 4,
+          score: 4,
         },
       ]);
       setAnalyzing(false);
@@ -155,11 +197,66 @@ export default function MealEntryScreen({ route }: any) {
     }, 1500);
   };
 
+  const addFoodFromSearch = (food: typeof commonFoods[0]) => {
+    const newFood: FoodItem = {
+      id: Date.now(),
+      name: food.name,
+      portionSize: '1 serving',
+      score: food.score,
+      warnings: [],
+    };
+    setDetectedFoods([...detectedFoods, newFood]);
+    setSearchQuery('');
+  };
+
+  const addCustomFood = () => {
+    if (!customFoodName.trim()) {
+      Alert.alert('Error', 'Please enter a food name');
+      return;
+    }
+
+    const newFood: FoodItem = {
+      id: Date.now(),
+      name: customFoodName.trim(),
+      portionSize: customFoodPortion.trim() || '1 serving',
+      score: parseInt(customFoodScore) || 2,
+      warnings: [],
+    };
+    setDetectedFoods([...detectedFoods, newFood]);
+    setCustomFoodName('');
+    setCustomFoodPortion('');
+    setCustomFoodScore('2');
+  };
+
+  const filteredFoods = commonFoods.filter(
+    (food) =>
+      food.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      food.category.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const saveMeal = () => {
     const totalScore = detectedFoods.reduce((sum, food) => {
-      if (food.items) return sum + food.totalScore;
+      if (food.items) return sum + (food.totalScore || 0);
       return sum + food.score;
     }, 0);
+
+    const now = new Date();
+    const timeString = now.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+
+    const meal = {
+      name: mealName || getMealNameByTime(),
+      time: timeString,
+      date: now.toISOString().split('T')[0],
+      score: totalScore,
+      items: detectedFoods.length,
+      foods: detectedFoods,
+    };
+
+    addMeal(meal);
 
     Alert.alert(
       'Meal Saved!',
@@ -170,10 +267,21 @@ export default function MealEntryScreen({ route }: any) {
           onPress: () => {
             setInputMethod(null);
             setDetectedFoods([]);
+            setShowManualEntry(false);
+            setMealName('');
+            navigation.goBack();
           },
         },
       ]
     );
+  };
+
+  const getMealNameByTime = () => {
+    const hour = new Date().getHours();
+    if (hour < 11) return 'Breakfast';
+    if (hour < 15) return 'Lunch';
+    if (hour < 18) return 'Snack';
+    return 'Dinner';
   };
 
   const removeFood = (foodId: number) => {
@@ -184,6 +292,9 @@ export default function MealEntryScreen({ route }: any) {
     setInputMethod(null);
     setDetectedFoods([]);
     setCameraActive(false);
+    setShowManualEntry(false);
+    setSearchQuery('');
+    setMealName('');
   };
 
   if (cameraActive && hasPermission) {
@@ -225,6 +336,190 @@ export default function MealEntryScreen({ route }: any) {
       </View>
     );
   }
+
+  // Manual Entry Modal
+  const renderManualEntryModal = () => (
+    <Modal
+      visible={showManualEntry}
+      animationType="slide"
+      presentationStyle="pageSheet"
+    >
+      <SafeAreaView style={styles.modalContainer}>
+        <View style={styles.modalHeader}>
+          <TouchableOpacity onPress={() => setShowManualEntry(false)}>
+            <Ionicons name="close" size={28} color="#1f2937" />
+          </TouchableOpacity>
+          <Text style={styles.modalTitle}>Add Foods Manually</Text>
+          <View style={{ width: 28 }} />
+        </View>
+
+        <ScrollView style={styles.modalContent}>
+          {/* Meal Name */}
+          <View style={styles.inputSection}>
+            <Text style={styles.inputLabel}>Meal Name (optional)</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="e.g., Breakfast, Lunch, Dinner"
+              value={mealName}
+              onChangeText={setMealName}
+              placeholderTextColor="#9ca3af"
+            />
+          </View>
+
+          {/* Search Foods */}
+          <View style={styles.inputSection}>
+            <Text style={styles.inputLabel}>Search Common Foods</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Search by name or category..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholderTextColor="#9ca3af"
+            />
+          </View>
+
+          {searchQuery.length > 0 && (
+            <View style={styles.searchResults}>
+              {filteredFoods.map((food, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  style={styles.searchResultItem}
+                  onPress={() => addFoodFromSearch(food)}
+                >
+                  <View style={styles.searchResultInfo}>
+                    <Text style={styles.searchResultName}>{food.name}</Text>
+                    <Text style={styles.searchResultCategory}>
+                      {food.category}
+                    </Text>
+                  </View>
+                  <View style={styles.searchResultScore}>
+                    <Text style={styles.searchResultScoreText}>
+                      +{food.score}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+              {filteredFoods.length === 0 && (
+                <Text style={styles.noResults}>
+                  No foods found. Add a custom food below.
+                </Text>
+              )}
+            </View>
+          )}
+
+          {/* Custom Food Entry */}
+          <View style={styles.customFoodSection}>
+            <Text style={styles.sectionTitle}>Add Custom Food</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Food name"
+              value={customFoodName}
+              onChangeText={setCustomFoodName}
+              placeholderTextColor="#9ca3af"
+            />
+            <TextInput
+              style={[styles.textInput, { marginTop: 8 }]}
+              placeholder="Portion size (e.g., 1 cup, 6 oz)"
+              value={customFoodPortion}
+              onChangeText={setCustomFoodPortion}
+              placeholderTextColor="#9ca3af"
+            />
+            <View style={styles.scoreSelector}>
+              <Text style={styles.scoreSelectorLabel}>CBI Score:</Text>
+              <View style={styles.scoreButtons}>
+                {['-1', '0', '1', '2', '3'].map((score) => (
+                  <TouchableOpacity
+                    key={score}
+                    style={[
+                      styles.scoreButton,
+                      customFoodScore === score && styles.scoreButtonActive,
+                    ]}
+                    onPress={() => setCustomFoodScore(score)}
+                  >
+                    <Text
+                      style={[
+                        styles.scoreButtonText,
+                        customFoodScore === score &&
+                          styles.scoreButtonTextActive,
+                      ]}
+                    >
+                      {parseInt(score) >= 0 ? '+' : ''}
+                      {score}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.addCustomButton}
+              onPress={addCustomFood}
+            >
+              <Ionicons name="add" size={20} color="white" />
+              <Text style={styles.addCustomButtonText}>Add Food</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Added Foods */}
+          {detectedFoods.length > 0 && (
+            <View style={styles.addedFoodsSection}>
+              <Text style={styles.sectionTitle}>
+                Added Foods ({detectedFoods.length})
+              </Text>
+              {detectedFoods.map((food) => (
+                <View key={food.id} style={styles.addedFoodItem}>
+                  <View style={styles.addedFoodInfo}>
+                    <Text style={styles.addedFoodName}>{food.name}</Text>
+                    <Text style={styles.addedFoodPortion}>
+                      {food.portionSize || food.servingSize}
+                    </Text>
+                  </View>
+                  <View style={styles.addedFoodActions}>
+                    <View
+                      style={[
+                        styles.addedFoodScore,
+                        {
+                          backgroundColor:
+                            food.score >= 2 ? '#d1fae5' : '#dbeafe',
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.addedFoodScoreText,
+                          { color: food.score >= 2 ? '#047857' : '#1e40af' },
+                        ]}
+                      >
+                        {food.score >= 0 ? '+' : ''}
+                        {food.score}
+                      </Text>
+                    </View>
+                    <TouchableOpacity onPress={() => removeFood(food.id)}>
+                      <Ionicons name="trash" size={20} color="#ef4444" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+
+              <View style={styles.totalScoreSection}>
+                <Text style={styles.totalScoreLabel}>Total Score</Text>
+                <Text style={styles.totalScoreValue}>
+                  +
+                  {detectedFoods.reduce(
+                    (sum, f) => sum + (f.totalScore || f.score),
+                    0
+                  )}
+                </Text>
+              </View>
+
+              <TouchableOpacity style={styles.saveMealButton} onPress={saveMeal}>
+                <Text style={styles.saveMealButtonText}>Save Meal</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -298,7 +593,7 @@ export default function MealEntryScreen({ route }: any) {
         )}
 
         {/* Results */}
-        {!analyzing && detectedFoods.length > 0 && (
+        {!analyzing && detectedFoods.length > 0 && !showManualEntry && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Detected Items</Text>
             {detectedFoods.map((food) => (
@@ -393,6 +688,8 @@ export default function MealEntryScreen({ route }: any) {
           </View>
         )}
       </ScrollView>
+
+      {renderManualEntryModal()}
     </SafeAreaView>
   );
 }
@@ -661,5 +958,211 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
+  },
+  // Manual Entry Modal Styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#f9fafb',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1f2937',
+  },
+  modalContent: {
+    flex: 1,
+    padding: 16,
+  },
+  inputSection: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  textInput: {
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: '#1f2937',
+  },
+  searchResults: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    marginBottom: 16,
+    maxHeight: 200,
+  },
+  searchResultItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  searchResultInfo: {
+    flex: 1,
+  },
+  searchResultName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  searchResultCategory: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  searchResultScore: {
+    backgroundColor: '#d1fae5',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  searchResultScoreText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#047857',
+  },
+  noResults: {
+    padding: 16,
+    textAlign: 'center',
+    color: '#6b7280',
+  },
+  customFoodSection: {
+    backgroundColor: 'white',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  scoreSelector: {
+    marginTop: 12,
+  },
+  scoreSelectorLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  scoreButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  scoreButton: {
+    flex: 1,
+    backgroundColor: '#f3f4f6',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  scoreButtonActive: {
+    backgroundColor: '#3b82f6',
+  },
+  scoreButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  scoreButtonTextActive: {
+    color: 'white',
+  },
+  addCustomButton: {
+    backgroundColor: '#3b82f6',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 8,
+    marginTop: 16,
+    gap: 8,
+  },
+  addCustomButtonText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  addedFoodsSection: {
+    backgroundColor: 'white',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 24,
+  },
+  addedFoodItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  addedFoodInfo: {
+    flex: 1,
+  },
+  addedFoodName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  addedFoodPortion: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  addedFoodActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  addedFoodScore: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  addedFoodScoreText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  totalScoreSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 2,
+    borderTopColor: '#10b981',
+  },
+  totalScoreLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1f2937',
+  },
+  totalScoreValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#10b981',
+  },
+  saveMealButton: {
+    backgroundColor: '#10b981',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  saveMealButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'white',
   },
 });

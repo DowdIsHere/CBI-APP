@@ -8,23 +8,13 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useApp } from '../context/AppContext';
 
 export default function HomeScreen({ navigation }: any) {
+  const { userStats, getTodaysMeals, userProfile } = useApp();
   const [notifications] = useState(3);
 
-  const userStats = {
-    todayScore: 14,
-    weekAverage: 11,
-    streak: 7,
-    energyLevel: 8,
-    weightChange: -2.5,
-  };
-
-  const recentMeals = [
-    { name: 'Breakfast', time: '8:30 AM', score: 8, items: 3 },
-    { name: 'Lunch', time: '12:45 PM', score: 12, items: 4 },
-    { name: 'Snack', time: '3:15 PM', score: 4, items: 2 },
-  ];
+  const todaysMeals = getTodaysMeals();
 
   const quickActions = [
     {
@@ -57,23 +47,44 @@ export default function HomeScreen({ navigation }: any) {
     },
   ];
 
-  const insights = [
-    {
-      type: 'success',
-      message: 'Your energy levels are up 60% this week!',
-      icon: 'flash',
-    },
-    {
+  // Generate dynamic insights based on actual data
+  const generateInsights = () => {
+    const insights = [];
+
+    if (userStats.energyImprovement > 0) {
+      insights.push({
+        type: 'success',
+        message: `Your energy levels are up ${userStats.energyImprovement}% this week!`,
+        icon: 'flash',
+      });
+    }
+
+    if (userStats.streak >= 3) {
+      insights.push({
+        type: 'success',
+        message: `${userStats.streak}-day streak! Keep it going!`,
+        icon: 'flame',
+      });
+    }
+
+    insights.push({
       type: 'tip',
-      message: 'Add more sulforaphane - only 1 cruciferous serving yesterday',
+      message: 'Add more sulforaphane - try broccoli or Brussels sprouts today',
       icon: 'bulb',
-    },
-    {
-      type: 'warning',
-      message: 'Detected nightshades in 2 meals - may trigger symptoms',
-      icon: 'warning',
-    },
-  ];
+    });
+
+    if (userProfile.sensitivities.includes('Nightshades')) {
+      insights.push({
+        type: 'warning',
+        message: 'Watch out for nightshades - may trigger symptoms',
+        icon: 'warning',
+      });
+    }
+
+    return insights.slice(0, 3);
+  };
+
+  const insights = generateInsights();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -189,45 +200,55 @@ export default function HomeScreen({ navigation }: any) {
         {/* Recent Meals */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Today's Meals</Text>
-          {recentMeals.map((meal, idx) => (
-            <TouchableOpacity key={idx} style={styles.mealCard}>
-              <View>
-                <Text style={styles.mealName}>{meal.name}</Text>
-                <Text style={styles.mealDetails}>
-                  {meal.time} • {meal.items} items
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.scorebadge,
-                  {
-                    backgroundColor:
-                      meal.score >= 10
-                        ? '#d1fae5'
-                        : meal.score >= 5
-                        ? '#dbeafe'
-                        : '#fef3c7',
-                  },
-                ]}
-              >
-                <Text
+          {todaysMeals.length > 0 ? (
+            todaysMeals.map((meal, idx) => (
+              <TouchableOpacity key={idx} style={styles.mealCard}>
+                <View>
+                  <Text style={styles.mealName}>{meal.name}</Text>
+                  <Text style={styles.mealDetails}>
+                    {meal.time} • {meal.items} items
+                  </Text>
+                </View>
+                <View
                   style={[
-                    styles.scoreBadgeText,
+                    styles.scoreBadge,
                     {
-                      color:
+                      backgroundColor:
                         meal.score >= 10
-                          ? '#047857'
+                          ? '#d1fae5'
                           : meal.score >= 5
-                          ? '#1e40af'
-                          : '#92400e',
+                          ? '#dbeafe'
+                          : '#fef3c7',
                     },
                   ]}
                 >
-                  +{meal.score}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+                  <Text
+                    style={[
+                      styles.scoreBadgeText,
+                      {
+                        color:
+                          meal.score >= 10
+                            ? '#047857'
+                            : meal.score >= 5
+                            ? '#1e40af'
+                            : '#92400e',
+                      },
+                    ]}
+                  >
+                    +{meal.score}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <View style={styles.noMealsCard}>
+              <Ionicons name="restaurant-outline" size={48} color="#d1d5db" />
+              <Text style={styles.noMealsText}>No meals logged today</Text>
+              <Text style={styles.noMealsSubtext}>
+                Tap a button above to add your first meal
+              </Text>
+            </View>
+          )}
           <TouchableOpacity
             style={styles.addMealButton}
             onPress={() => navigation.navigate('LogMeal')}
@@ -445,6 +466,30 @@ const styles = StyleSheet.create({
   scoreBadgeText: {
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  noMealsCard: {
+    backgroundColor: 'white',
+    padding: 32,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 12,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  noMealsText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6b7280',
+    marginTop: 12,
+  },
+  noMealsSubtext: {
+    fontSize: 13,
+    color: '#9ca3af',
+    marginTop: 4,
+    textAlign: 'center',
   },
   addMealButton: {
     borderWidth: 2,

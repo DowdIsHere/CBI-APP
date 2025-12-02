@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,10 +6,26 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+// Enable LayoutAnimation on Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+interface FAQ {
+  id: number;
+  question: string;
+  answer: string;
+}
+
 export default function EducationScreen() {
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+
   const currentWeek = {
     title: 'Week 1: Foundation',
     lesson: 'Meet Your Enteric Nervous System',
@@ -79,6 +95,44 @@ export default function EducationScreen() {
     },
   ];
 
+  const faqs: FAQ[] = [
+    {
+      id: 1,
+      question: 'How quickly will I see results?',
+      answer:
+        'Most people notice improvements in energy and mental clarity within 2-4 weeks of following the Dowd Protocol consistently. More significant changes like improved symptoms and lab markers typically appear after 8-12 weeks. Remember, you\'re rebuilding your cellular health from the inside out - this takes time but the results are lasting.',
+    },
+    {
+      id: 2,
+      question: 'What makes the Dowd Protocol different?',
+      answer:
+        'Unlike conventional diets that focus on calories or macros, the Dowd Protocol targets your Enteric Nervous System (ENS) - your "second brain." By optimizing the gut-brain-mitochondria axis through specific foods, we support cellular intelligence rather than just body composition. This science-based approach addresses root causes rather than just symptoms.',
+    },
+    {
+      id: 3,
+      question: 'Can I follow this with dietary restrictions?',
+      answer:
+        'Absolutely! The Dowd Protocol is highly adaptable. Whether you\'re vegetarian, have food allergies, or follow religious dietary laws, there are always alternative foods that provide similar CBI benefits. The app tracks your restrictions and provides personalized recommendations that work within your constraints.',
+    },
+    {
+      id: 4,
+      question: 'What is a CBI Score?',
+      answer:
+        'CBI (Cellular Biology Intelligence) Score measures how foods affect your body\'s natural intelligence systems. Positive scores (+1 to +3) indicate foods that support your ENS, mitochondria, and gut health. Negative scores (-1 to -3) indicate foods that may cause inflammation or disrupt cellular function. Your daily goal is to accumulate positive points.',
+    },
+    {
+      id: 5,
+      question: 'How do I track my progress?',
+      answer:
+        'The app automatically tracks your meals, calculates daily and weekly CBI scores, and monitors your streak. Over time, you\'ll see trends in your Progress tab showing how your food choices correlate with energy levels, mood, and other health metrics. The more consistent you are, the clearer the patterns become.',
+    },
+  ];
+
+  const toggleFaq = (id: number) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpandedFaq(expandedFaq === id ? null : id);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
@@ -103,7 +157,7 @@ export default function EducationScreen() {
           </View>
           <TouchableOpacity style={styles.continueButton}>
             <Text style={styles.continueButtonText}>Continue Learning</Text>
-            <Ionicons name="arrow-forward" size={20} color="white" />
+            <Ionicons name="arrow-forward" size={20} color="#3b82f6" />
           </TouchableOpacity>
         </View>
 
@@ -190,31 +244,36 @@ export default function EducationScreen() {
           </View>
         </View>
 
-        {/* FAQs */}
+        {/* FAQs with Expansion */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Frequently Asked</Text>
 
-          <TouchableOpacity style={styles.faqCard}>
-            <Text style={styles.faqQuestion}>
-              How quickly will I see results?
-            </Text>
-            <Ionicons name="chevron-down" size={20} color="#6b7280" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.faqCard}>
-            <Text style={styles.faqQuestion}>
-              What makes the Dowd Protocol different?
-            </Text>
-            <Ionicons name="chevron-down" size={20} color="#6b7280" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.faqCard}>
-            <Text style={styles.faqQuestion}>
-              Can I follow this with dietary restrictions?
-            </Text>
-            <Ionicons name="chevron-down" size={20} color="#6b7280" />
-          </TouchableOpacity>
+          {faqs.map((faq) => (
+            <TouchableOpacity
+              key={faq.id}
+              style={styles.faqCard}
+              onPress={() => toggleFaq(faq.id)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.faqHeader}>
+                <Text style={styles.faqQuestion}>{faq.question}</Text>
+                <Ionicons
+                  name={expandedFaq === faq.id ? 'chevron-up' : 'chevron-down'}
+                  size={20}
+                  color="#6b7280"
+                />
+              </View>
+              {expandedFaq === faq.id && (
+                <View style={styles.faqAnswerContainer}>
+                  <Text style={styles.faqAnswer}>{faq.answer}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          ))}
         </View>
+
+        {/* Bottom Spacing */}
+        <View style={{ height: 24 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -406,19 +465,33 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 8,
     marginBottom: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     elevation: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
   },
+  faqHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   faqQuestion: {
     fontSize: 14,
     fontWeight: '600',
     color: '#1f2937',
     flex: 1,
+    paddingRight: 12,
+  },
+  faqAnswerContainer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
+  faqAnswer: {
+    fontSize: 13,
+    color: '#6b7280',
+    lineHeight: 20,
   },
 });

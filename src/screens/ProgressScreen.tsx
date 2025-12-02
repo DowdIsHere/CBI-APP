@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,49 +6,97 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
-  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
-const screenWidth = Dimensions.get('window').width;
+import { useApp } from '../context/AppContext';
 
 export default function ProgressScreen() {
-  const [timeRange, setTimeRange] = useState('week');
+  const { userStats, weeklyData, monthlyData, yearlyData, meals } = useApp();
+  const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('week');
 
-  const stats = {
-    currentStreak: 7,
-    totalMeals: 45,
-    avgScore: 11,
-    bestDay: 18,
-    energyImprovement: 60,
-    weightChange: -2.5,
-  };
+  // Get display data based on time range
+  const displayData = useMemo(() => {
+    switch (timeRange) {
+      case 'week':
+        return weeklyData.map(d => ({ label: d.day, score: d.score }));
+      case 'month':
+        return monthlyData.map(d => ({ label: d.week, score: d.score }));
+      case 'year':
+        return yearlyData.map(d => ({ label: d.month, score: d.score }));
+      default:
+        return weeklyData.map(d => ({ label: d.day, score: d.score }));
+    }
+  }, [timeRange, weeklyData, monthlyData, yearlyData]);
 
-  const weeklyData = [
-    { day: 'Mon', score: 12 },
-    { day: 'Tue', score: 9 },
-    { day: 'Wed', score: 15 },
-    { day: 'Thu', score: 11 },
-    { day: 'Fri', score: 13 },
-    { day: 'Sat', score: 10 },
-    { day: 'Sun', score: 14 },
-  ];
+  // Get stats based on time range
+  const rangeStats = useMemo(() => {
+    switch (timeRange) {
+      case 'week':
+        return {
+          avgScore: userStats.weekAverage,
+          label: 'This Week',
+        };
+      case 'month':
+        return {
+          avgScore: userStats.monthAverage,
+          label: 'This Month',
+        };
+      case 'year':
+        return {
+          avgScore: userStats.yearAverage,
+          label: 'This Year',
+        };
+      default:
+        return {
+          avgScore: userStats.weekAverage,
+          label: 'This Week',
+        };
+    }
+  }, [timeRange, userStats]);
 
   const achievements = [
-    { id: 1, name: '7-Day Streak', icon: '🔥', unlocked: true },
-    { id: 2, name: 'ENS Optimizer', icon: '🧠', unlocked: true },
-    { id: 3, name: 'Omega-3 Master', icon: '🐟', unlocked: true },
+    { id: 1, name: '7-Day Streak', icon: '🔥', unlocked: userStats.streak >= 7 },
+    { id: 2, name: 'ENS Optimizer', icon: '🧠', unlocked: userStats.totalMeals >= 20 },
+    { id: 3, name: 'Omega-3 Master', icon: '🐟', unlocked: userStats.weekAverage >= 10 },
     { id: 4, name: 'Sugar-Free Week', icon: '🚫', unlocked: false },
   ];
 
-  const maxScore = Math.max(...weeklyData.map((d) => d.score));
+  const maxScore = Math.max(...displayData.map((d) => d.score), 1);
+
+  const getChartTitle = () => {
+    switch (timeRange) {
+      case 'week':
+        return 'Weekly Score';
+      case 'month':
+        return 'Monthly Score (Weekly Avg)';
+      case 'year':
+        return 'Yearly Score (Monthly Avg)';
+      default:
+        return 'Weekly Score';
+    }
+  };
+
+  // Calculate top performing foods
+  const topFoods = useMemo(() => {
+    const foodScores: { [key: string]: number } = {};
+    meals.forEach(meal => {
+      meal.foods?.forEach(food => {
+        if (!foodScores[food.name]) foodScores[food.name] = 0;
+        foodScores[food.name] += food.score;
+      });
+    });
+    return Object.entries(foodScores)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([name, score]) => `${name} (+${score})`);
+  }, [meals]);
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
         {/* Time Range Selector */}
         <View style={styles.timeRangeSelector}>
-          {['week', 'month', 'year'].map((range) => (
+          {(['week', 'month', 'year'] as const).map((range) => (
             <TouchableOpacity
               key={range}
               style={[
@@ -73,32 +121,32 @@ export default function ProgressScreen() {
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
             <Ionicons name="flame" size={32} color="#f59e0b" />
-            <Text style={styles.statValue}>{stats.currentStreak}</Text>
+            <Text style={styles.statValue}>{userStats.streak}</Text>
             <Text style={styles.statLabel}>Day Streak</Text>
           </View>
           <View style={styles.statCard}>
             <Ionicons name="restaurant" size={32} color="#3b82f6" />
-            <Text style={styles.statValue}>{stats.totalMeals}</Text>
+            <Text style={styles.statValue}>{userStats.totalMeals}</Text>
             <Text style={styles.statLabel}>Total Meals</Text>
           </View>
           <View style={styles.statCard}>
             <Ionicons name="trending-up" size={32} color="#10b981" />
-            <Text style={styles.statValue}>+{stats.avgScore}</Text>
+            <Text style={styles.statValue}>+{rangeStats.avgScore}</Text>
             <Text style={styles.statLabel}>Avg Score</Text>
           </View>
           <View style={styles.statCard}>
             <Ionicons name="trophy" size={32} color="#8b5cf6" />
-            <Text style={styles.statValue}>+{stats.bestDay}</Text>
+            <Text style={styles.statValue}>+{userStats.bestDay}</Text>
             <Text style={styles.statLabel}>Best Day</Text>
           </View>
         </View>
 
-        {/* Weekly Chart */}
+        {/* Chart */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Weekly Score</Text>
+          <Text style={styles.sectionTitle}>{getChartTitle()}</Text>
           <View style={styles.chartCard}>
             <View style={styles.chart}>
-              {weeklyData.map((data, idx) => (
+              {displayData.map((data, idx) => (
                 <View key={idx} style={styles.barContainer}>
                   <View style={styles.barWrapper}>
                     <View
@@ -111,16 +159,26 @@ export default function ProgressScreen() {
                               ? '#10b981'
                               : data.score >= 8
                               ? '#3b82f6'
-                              : '#f59e0b',
+                              : data.score > 0
+                              ? '#f59e0b'
+                              : '#e5e7eb',
                         },
                       ]}
                     />
                   </View>
-                  <Text style={styles.barScore}>+{data.score}</Text>
-                  <Text style={styles.barLabel}>{data.day}</Text>
+                  <Text style={styles.barScore}>
+                    {data.score > 0 ? `+${data.score}` : data.score}
+                  </Text>
+                  <Text style={styles.barLabel}>{data.label}</Text>
                 </View>
               ))}
             </View>
+            {displayData.every(d => d.score === 0) && (
+              <View style={styles.noDataOverlay}>
+                <Text style={styles.noDataText}>No data for this period yet</Text>
+                <Text style={styles.noDataSubtext}>Start logging meals to see your progress!</Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -134,13 +192,15 @@ export default function ProgressScreen() {
                 <Text style={styles.metricLabel}>Energy Level</Text>
               </View>
               <View style={styles.metricValue}>
-                <Text style={styles.metricNumber}>8/10</Text>
-                <View style={styles.improvementBadge}>
-                  <Ionicons name="arrow-up" size={12} color="#10b981" />
-                  <Text style={styles.improvementText}>
-                    +{stats.energyImprovement}%
-                  </Text>
-                </View>
+                <Text style={styles.metricNumber}>{userStats.energyLevel}/10</Text>
+                {userStats.energyImprovement > 0 && (
+                  <View style={styles.improvementBadge}>
+                    <Ionicons name="arrow-up" size={12} color="#10b981" />
+                    <Text style={styles.improvementText}>
+                      +{userStats.energyImprovement}%
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
 
@@ -151,7 +211,7 @@ export default function ProgressScreen() {
               </View>
               <View style={styles.metricValue}>
                 <Text style={styles.metricNumber}>
-                  {stats.weightChange} lbs
+                  {userStats.weightChange} lbs
                 </Text>
                 <View style={styles.improvementBadge}>
                   <Ionicons name="checkmark" size={12} color="#10b981" />
@@ -166,11 +226,15 @@ export default function ProgressScreen() {
                 <Text style={styles.metricLabel}>Mood</Text>
               </View>
               <View style={styles.metricValue}>
-                <Text style={styles.metricNumber}>Excellent</Text>
-                <View style={styles.improvementBadge}>
-                  <Ionicons name="arrow-up" size={12} color="#10b981" />
-                  <Text style={styles.improvementText}>+40%</Text>
-                </View>
+                <Text style={styles.metricNumber}>
+                  {userStats.energyLevel >= 8 ? 'Excellent' : userStats.energyLevel >= 6 ? 'Good' : 'Fair'}
+                </Text>
+                {userStats.weekAverage > 5 && (
+                  <View style={styles.improvementBadge}>
+                    <Ionicons name="arrow-up" size={12} color="#10b981" />
+                    <Text style={styles.improvementText}>Improving</Text>
+                  </View>
+                )}
               </View>
             </View>
           </View>
@@ -198,17 +262,31 @@ export default function ProgressScreen() {
         {/* Insights */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Insights</Text>
-          <View style={styles.insightCard}>
-            <Ionicons name="analytics" size={24} color="#3b82f6" />
-            <View style={styles.insightContent}>
-              <Text style={styles.insightTitle}>
-                Your top performing foods this week:
-              </Text>
-              <Text style={styles.insightText}>
-                Wild salmon (+18), Broccoli (+14), Blueberries (+12)
-              </Text>
+          {topFoods.length > 0 ? (
+            <View style={styles.insightCard}>
+              <Ionicons name="analytics" size={24} color="#3b82f6" />
+              <View style={styles.insightContent}>
+                <Text style={styles.insightTitle}>
+                  Your top performing foods {rangeStats.label.toLowerCase()}:
+                </Text>
+                <Text style={styles.insightText}>
+                  {topFoods.join(', ')}
+                </Text>
+              </View>
             </View>
-          </View>
+          ) : (
+            <View style={styles.insightCard}>
+              <Ionicons name="analytics" size={24} color="#3b82f6" />
+              <View style={styles.insightContent}>
+                <Text style={styles.insightTitle}>
+                  Start logging meals to see insights
+                </Text>
+                <Text style={styles.insightText}>
+                  Track your food to discover which items give you the best CBI scores.
+                </Text>
+              </View>
+            </View>
+          )}
           <View style={styles.insightCard}>
             <Ionicons name="bulb" size={24} color="#f59e0b" />
             <View style={styles.insightContent}>
@@ -220,6 +298,9 @@ export default function ProgressScreen() {
             </View>
           </View>
         </View>
+
+        {/* Bottom Spacing */}
+        <View style={{ height: 24 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -305,6 +386,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
+    position: 'relative',
   },
   chart: {
     flexDirection: 'row',
@@ -326,6 +408,7 @@ const styles = StyleSheet.create({
     width: '100%',
     borderTopLeftRadius: 4,
     borderTopRightRadius: 4,
+    minHeight: 4,
   },
   barScore: {
     fontSize: 10,
@@ -336,6 +419,27 @@ const styles = StyleSheet.create({
   barLabel: {
     fontSize: 11,
     color: '#6b7280',
+    marginTop: 4,
+  },
+  noDataOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 12,
+  },
+  noDataText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  noDataSubtext: {
+    fontSize: 13,
+    color: '#9ca3af',
     marginTop: 4,
   },
   metricsCard: {
