@@ -7,24 +7,84 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Switch,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../context/AuthContext';
+import { useApp } from '../context/AppContext';
 
 export default function ProfileScreen() {
-  const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
-  const [remindersEnabled, setRemindersEnabled] = React.useState(true);
+  const { user, logout, updateProfile } = useAuth();
+  const { stats } = useApp();
 
-  const userProfile = {
-    name: 'John Doe',
-    email: 'john@example.com',
-    condition: 'Multiple Sclerosis',
-    joinDate: 'Jan 2025',
-    totalMeals: 45,
-    streak: 7,
+  const handleToggleNotifications = async (value: boolean) => {
+    await updateProfile({ notificationsEnabled: value });
   };
 
-  const allergies = ['Shellfish', 'Tree Nuts'];
-  const sensitivities = ['Nightshades', 'Dairy', 'Gluten'];
+  const handleToggleReminders = async (value: boolean) => {
+    await updateProfile({ remindersEnabled: value });
+  };
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Log Out',
+      'Are you sure you want to log out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Log Out', style: 'destructive', onPress: logout },
+      ]
+    );
+  };
+
+  const handleAddAllergy = () => {
+    Alert.prompt(
+      'Add Allergy',
+      'Enter the allergy to add:',
+      async (text) => {
+        if (text && user) {
+          const allergies = [...(user.allergies || []), text];
+          await updateProfile({ allergies });
+        }
+      }
+    );
+  };
+
+  const handleAddSensitivity = () => {
+    Alert.prompt(
+      'Add Sensitivity',
+      'Enter the food sensitivity to add:',
+      async (text) => {
+        if (text && user) {
+          const sensitivities = [...(user.sensitivities || []), text];
+          await updateProfile({ sensitivities });
+        }
+      }
+    );
+  };
+
+  const handleRemoveAllergy = async (allergy: string) => {
+    if (user) {
+      const allergies = user.allergies.filter((a) => a !== allergy);
+      await updateProfile({ allergies });
+    }
+  };
+
+  const handleRemoveSensitivity = async (sensitivity: string) => {
+    if (user) {
+      const sensitivities = user.sensitivities.filter((s) => s !== sensitivity);
+      await updateProfile({ sensitivities });
+    }
+  };
+
+  if (!user) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Text>Loading profile...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -33,24 +93,24 @@ export default function ProfileScreen() {
         <View style={styles.profileHeader}>
           <View style={styles.avatarContainer}>
             <Text style={styles.avatarText}>
-              {userProfile.name.charAt(0)}
+              {user.name.charAt(0).toUpperCase()}
             </Text>
           </View>
-          <Text style={styles.userName}>{userProfile.name}</Text>
-          <Text style={styles.userEmail}>{userProfile.email}</Text>
+          <Text style={styles.userName}>{user.name}</Text>
+          <Text style={styles.userEmail}>{user.email}</Text>
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{userProfile.totalMeals}</Text>
+              <Text style={styles.statValue}>{stats.totalMeals}</Text>
               <Text style={styles.statLabel}>Meals</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{userProfile.streak}</Text>
+              <Text style={styles.statValue}>{stats.streak}</Text>
               <Text style={styles.statLabel}>Day Streak</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{userProfile.joinDate}</Text>
+              <Text style={styles.statValue}>{user.joinDate?.split('-')[0] || 'N/A'}</Text>
               <Text style={styles.statLabel}>Member Since</Text>
             </View>
           </View>
@@ -64,7 +124,9 @@ export default function ProfileScreen() {
               <Ionicons name="medical" size={24} color="#ef4444" />
               <View style={styles.infoText}>
                 <Text style={styles.infoLabel}>Primary Condition</Text>
-                <Text style={styles.infoValue}>{userProfile.condition}</Text>
+                <Text style={styles.infoValue}>
+                  {user.condition || 'Not specified'}
+                </Text>
               </View>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
@@ -79,13 +141,21 @@ export default function ProfileScreen() {
             <View style={styles.restrictionSection}>
               <Text style={styles.restrictionTitle}>Allergies</Text>
               <View style={styles.tagsContainer}>
-                {allergies.map((allergy, idx) => (
-                  <View key={idx} style={[styles.tag, styles.allergyTag]}>
-                    <Text style={styles.allergyTagText}>{allergy}</Text>
-                    <Ionicons name="close-circle" size={16} color="#dc2626" />
-                  </View>
-                ))}
-                <TouchableOpacity style={styles.addTag}>
+                {user.allergies && user.allergies.length > 0 ? (
+                  user.allergies.map((allergy, idx) => (
+                    <TouchableOpacity
+                      key={idx}
+                      style={[styles.tag, styles.allergyTag]}
+                      onPress={() => handleRemoveAllergy(allergy)}
+                    >
+                      <Text style={styles.allergyTagText}>{allergy}</Text>
+                      <Ionicons name="close-circle" size={16} color="#dc2626" />
+                    </TouchableOpacity>
+                  ))
+                ) : (
+                  <Text style={styles.noItemsText}>No allergies added</Text>
+                )}
+                <TouchableOpacity style={styles.addTag} onPress={handleAddAllergy}>
                   <Ionicons name="add" size={16} color="#6b7280" />
                   <Text style={styles.addTagText}>Add</Text>
                 </TouchableOpacity>
@@ -97,15 +167,23 @@ export default function ProfileScreen() {
             <View style={styles.restrictionSection}>
               <Text style={styles.restrictionTitle}>Sensitivities</Text>
               <View style={styles.tagsContainer}>
-                {sensitivities.map((sensitivity, idx) => (
-                  <View key={idx} style={[styles.tag, styles.sensitivityTag]}>
-                    <Text style={styles.sensitivityTagText}>
-                      {sensitivity}
-                    </Text>
-                    <Ionicons name="close-circle" size={16} color="#ea580c" />
-                  </View>
-                ))}
-                <TouchableOpacity style={styles.addTag}>
+                {user.sensitivities && user.sensitivities.length > 0 ? (
+                  user.sensitivities.map((sensitivity, idx) => (
+                    <TouchableOpacity
+                      key={idx}
+                      style={[styles.tag, styles.sensitivityTag]}
+                      onPress={() => handleRemoveSensitivity(sensitivity)}
+                    >
+                      <Text style={styles.sensitivityTagText}>
+                        {sensitivity}
+                      </Text>
+                      <Ionicons name="close-circle" size={16} color="#ea580c" />
+                    </TouchableOpacity>
+                  ))
+                ) : (
+                  <Text style={styles.noItemsText}>No sensitivities added</Text>
+                )}
+                <TouchableOpacity style={styles.addTag} onPress={handleAddSensitivity}>
                   <Ionicons name="add" size={16} color="#6b7280" />
                   <Text style={styles.addTagText}>Add</Text>
                 </TouchableOpacity>
@@ -125,10 +203,10 @@ export default function ProfileScreen() {
                 <Text style={styles.settingLabel}>Push Notifications</Text>
               </View>
               <Switch
-                value={notificationsEnabled}
-                onValueChange={setNotificationsEnabled}
+                value={user.notificationsEnabled}
+                onValueChange={handleToggleNotifications}
                 trackColor={{ false: '#d1d5db', true: '#93c5fd' }}
-                thumbColor={notificationsEnabled ? '#3b82f6' : '#f3f4f6'}
+                thumbColor={user.notificationsEnabled ? '#3b82f6' : '#f3f4f6'}
               />
             </View>
 
@@ -140,10 +218,10 @@ export default function ProfileScreen() {
                 <Text style={styles.settingLabel}>Meal Reminders</Text>
               </View>
               <Switch
-                value={remindersEnabled}
-                onValueChange={setRemindersEnabled}
+                value={user.remindersEnabled}
+                onValueChange={handleToggleReminders}
                 trackColor={{ false: '#d1d5db', true: '#c4b5fd' }}
-                thumbColor={remindersEnabled ? '#8b5cf6' : '#f3f4f6'}
+                thumbColor={user.remindersEnabled ? '#8b5cf6' : '#f3f4f6'}
               />
             </View>
           </View>
@@ -175,7 +253,10 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.menuItem, styles.logoutItem]}>
+          <TouchableOpacity
+            style={[styles.menuItem, styles.logoutItem]}
+            onPress={handleLogout}
+          >
             <Ionicons name="log-out" size={20} color="#ef4444" />
             <Text style={[styles.menuItemText, styles.logoutText]}>
               Log Out
@@ -200,6 +281,11 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   profileHeader: {
     backgroundColor: '#1e3a8a',
@@ -315,6 +401,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
+    alignItems: 'center',
+  },
+  noItemsText: {
+    fontSize: 13,
+    color: '#9ca3af',
+    fontStyle: 'italic',
   },
   tag: {
     flexDirection: 'row',

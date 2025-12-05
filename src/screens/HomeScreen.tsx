@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -6,25 +6,22 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function HomeScreen({ navigation }: any) {
-  const [notifications] = useState(3);
+  const { stats, insights, todayMeals, isLoading, refreshAll } = useApp();
+  const { user } = useAuth();
+  const [refreshing, setRefreshing] = React.useState(false);
 
-  const userStats = {
-    todayScore: 14,
-    weekAverage: 11,
-    streak: 7,
-    energyLevel: 8,
-    weightChange: -2.5,
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refreshAll();
+    setRefreshing(false);
   };
-
-  const recentMeals = [
-    { name: 'Breakfast', time: '8:30 AM', score: 8, items: 3 },
-    { name: 'Lunch', time: '12:45 PM', score: 12, items: 4 },
-    { name: 'Snack', time: '3:15 PM', score: 4, items: 2 },
-  ];
 
   const quickActions = [
     {
@@ -57,27 +54,22 @@ export default function HomeScreen({ navigation }: any) {
     },
   ];
 
-  const insights = [
-    {
-      type: 'success',
-      message: 'Your energy levels are up 60% this week!',
-      icon: 'flash',
-    },
-    {
-      type: 'tip',
-      message: 'Add more sulforaphane - only 1 cruciferous serving yesterday',
-      icon: 'bulb',
-    },
-    {
-      type: 'warning',
-      message: 'Detected nightshades in 2 meals - may trigger symptoms',
-      icon: 'warning',
-    },
-  ];
+  // Format meals for display
+  const recentMeals = todayMeals.slice(0, 3).map((meal) => ({
+    name: meal.name || meal.type.charAt(0).toUpperCase() + meal.type.slice(1),
+    time: new Date(meal.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+    score: meal.totalScore,
+    items: meal.items.length,
+  }));
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
+      <ScrollView
+        style={styles.scrollView}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerContent}>
@@ -89,16 +81,16 @@ export default function HomeScreen({ navigation }: any) {
                 Cellular Biology Intelligence
               </Text>
               <Text style={styles.headerSubtitle}>
-                Enteric Nervous System Support
+                {user ? `Welcome, ${user.name}` : 'Enteric Nervous System Support'}
               </Text>
             </View>
           </View>
           <TouchableOpacity style={styles.notificationButton}>
             <Ionicons name="notifications" size={24} color="white" />
-            {notifications > 0 && (
+            {insights.length > 0 && (
               <View style={styles.notificationBadge}>
                 <Text style={styles.notificationBadgeText}>
-                  {notifications}
+                  {insights.length}
                 </Text>
               </View>
             )}
@@ -109,19 +101,23 @@ export default function HomeScreen({ navigation }: any) {
         <View style={styles.statsContainer}>
           <View style={[styles.statCard, { backgroundColor: '#10b981' }]}>
             <Text style={styles.statLabel}>Today's Score</Text>
-            <Text style={styles.statValue}>+{userStats.todayScore}</Text>
+            <Text style={styles.statValue}>
+              {stats.todayScore >= 0 ? '+' : ''}{stats.todayScore}
+            </Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: '#3b82f6' }]}>
             <Text style={styles.statLabel}>Week Average</Text>
-            <Text style={styles.statValue}>+{userStats.weekAverage}</Text>
+            <Text style={styles.statValue}>
+              {stats.weekAverage >= 0 ? '+' : ''}{stats.weekAverage}
+            </Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: '#f59e0b' }]}>
             <Text style={styles.statLabel}>Streak</Text>
-            <Text style={styles.statValue}>{userStats.streak} 🔥</Text>
+            <Text style={styles.statValue}>{stats.streak} 🔥</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: '#8b5cf6' }]}>
             <Text style={styles.statLabel}>Energy</Text>
-            <Text style={styles.statValue}>{userStats.energyLevel}/10</Text>
+            <Text style={styles.statValue}>{stats.energyLevel}/10</Text>
           </View>
         </View>
 
@@ -155,79 +151,99 @@ export default function HomeScreen({ navigation }: any) {
         {/* Insights */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Today's Insights</Text>
-          {insights.map((insight, idx) => (
-            <View
-              key={idx}
-              style={[
-                styles.insightCard,
-                {
-                  borderLeftColor:
+          {insights.length > 0 ? (
+            insights.slice(0, 3).map((insight, idx) => (
+              <View
+                key={insight.id || idx}
+                style={[
+                  styles.insightCard,
+                  {
+                    borderLeftColor:
+                      insight.type === 'success'
+                        ? '#10b981'
+                        : insight.type === 'tip'
+                        ? '#3b82f6'
+                        : '#f59e0b',
+                  },
+                ]}
+              >
+                <Ionicons
+                  name={insight.icon as any}
+                  size={20}
+                  color={
                     insight.type === 'success'
                       ? '#10b981'
                       : insight.type === 'tip'
                       ? '#3b82f6'
-                      : '#f59e0b',
-                },
-              ]}
-            >
-              <Ionicons
-                name={insight.icon as any}
-                size={20}
-                color={
-                  insight.type === 'success'
-                    ? '#10b981'
-                    : insight.type === 'tip'
-                    ? '#3b82f6'
-                    : '#f59e0b'
-                }
-              />
-              <Text style={styles.insightText}>{insight.message}</Text>
+                      : '#f59e0b'
+                  }
+                />
+                <Text style={styles.insightText}>{insight.message}</Text>
+              </View>
+            ))
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>
+                Log your first meal to see personalized insights!
+              </Text>
             </View>
-          ))}
+          )}
         </View>
 
         {/* Recent Meals */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Today's Meals</Text>
-          {recentMeals.map((meal, idx) => (
-            <TouchableOpacity key={idx} style={styles.mealCard}>
-              <View>
-                <Text style={styles.mealName}>{meal.name}</Text>
-                <Text style={styles.mealDetails}>
-                  {meal.time} • {meal.items} items
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.scorebadge,
-                  {
-                    backgroundColor:
-                      meal.score >= 10
-                        ? '#d1fae5'
-                        : meal.score >= 5
-                        ? '#dbeafe'
-                        : '#fef3c7',
-                  },
-                ]}
-              >
-                <Text
+          {recentMeals.length > 0 ? (
+            recentMeals.map((meal, idx) => (
+              <TouchableOpacity key={idx} style={styles.mealCard}>
+                <View>
+                  <Text style={styles.mealName}>{meal.name}</Text>
+                  <Text style={styles.mealDetails}>
+                    {meal.time} • {meal.items} items
+                  </Text>
+                </View>
+                <View
                   style={[
-                    styles.scoreBadgeText,
+                    styles.scoreBadge,
                     {
-                      color:
+                      backgroundColor:
                         meal.score >= 10
-                          ? '#047857'
+                          ? '#d1fae5'
                           : meal.score >= 5
-                          ? '#1e40af'
-                          : '#92400e',
+                          ? '#dbeafe'
+                          : meal.score >= 0
+                          ? '#fef3c7'
+                          : '#fee2e2',
                     },
                   ]}
                 >
-                  +{meal.score}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+                  <Text
+                    style={[
+                      styles.scoreBadgeText,
+                      {
+                        color:
+                          meal.score >= 10
+                            ? '#047857'
+                            : meal.score >= 5
+                            ? '#1e40af'
+                            : meal.score >= 0
+                            ? '#92400e'
+                            : '#dc2626',
+                      },
+                    ]}
+                  >
+                    {meal.score >= 0 ? '+' : ''}{meal.score}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>
+                No meals logged yet today
+              </Text>
+            </View>
+          )}
           <TouchableOpacity
             style={styles.addMealButton}
             onPress={() => navigation.navigate('LogMeal')}
@@ -412,6 +428,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#1f2937',
     fontWeight: '600',
+  },
+  emptyState: {
+    backgroundColor: 'white',
+    padding: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  emptyStateText: {
+    color: '#6b7280',
+    fontSize: 14,
   },
   mealCard: {
     backgroundColor: 'white',
