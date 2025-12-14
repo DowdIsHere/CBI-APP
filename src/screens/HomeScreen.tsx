@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -82,7 +83,11 @@ export default function HomeScreen({ navigation }: any) {
         <View style={styles.header}>
           <View style={styles.headerContent}>
             <View style={styles.logoContainer}>
-              <Text style={styles.logoText}>CBI</Text>
+              <Image
+                source={require('../../assets/cbi logo.png')}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
             </View>
             <View style={styles.headerTextContainer}>
               <Text style={styles.headerTitle}>
@@ -288,11 +293,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+    overflow: 'hidden',
   },
-  logoText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1e3a8a',
+  logoImage: {
+    width: '100%',
+    height: '100%',
   },
   headerTextContainer: {
     flex: 1,
