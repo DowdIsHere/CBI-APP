@@ -8,9 +8,12 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Panel from '../components/panels/Panel';
 
 export default function HomeScreen({ navigation }: any) {
-  const [notifications] = useState(3);
+  const [scoreDetailOpen, setScoreDetailOpen] = useState(false);
+  const [insightsOpen, setInsightsOpen] = useState(false);
+  const [achievementsOpen, setAchievementsOpen] = useState(false);
 
   const userStats = {
     todayScore: 14,
@@ -20,41 +23,10 @@ export default function HomeScreen({ navigation }: any) {
     weightChange: -2.5,
   };
 
-  const recentMeals = [
-    { name: 'Breakfast', time: '8:30 AM', score: 8, items: 3 },
-    { name: 'Lunch', time: '12:45 PM', score: 12, items: 4 },
-    { name: 'Snack', time: '3:15 PM', score: 4, items: 2 },
-  ];
-
-  const quickActions = [
-    {
-      id: 'photo',
-      name: 'Photo',
-      description: 'Snap & analyze',
-      icon: 'camera',
-      color: '#3b82f6',
-    },
-    {
-      id: 'batch',
-      name: 'Batch',
-      description: 'Multiple meals',
-      icon: 'cube',
-      color: '#8b5cf6',
-    },
-    {
-      id: 'barcode',
-      name: 'Scan',
-      description: 'Packaged foods',
-      icon: 'scan',
-      color: '#10b981',
-    },
-    {
-      id: 'manual',
-      name: 'Type',
-      description: 'Text entry',
-      icon: 'create',
-      color: '#f59e0b',
-    },
+  const todaysMeals = [
+    { name: 'Breakfast', time: '8:30 AM', score: 8, items: ['Eggs', 'Avocado', 'Spinach'] },
+    { name: 'Lunch', time: '12:45 PM', score: 12, items: ['Wild Salmon', 'Broccoli', 'Olive Oil'] },
+    { name: 'Snack', time: '3:15 PM', score: 4, items: ['Blueberries', 'Walnuts'] },
   ];
 
   const insights = [
@@ -62,22 +34,39 @@ export default function HomeScreen({ navigation }: any) {
       type: 'success',
       message: 'Your energy levels are up 60% this week!',
       icon: 'flash',
+      color: '#10b981',
     },
     {
       type: 'tip',
       message: 'Add more sulforaphane - only 1 cruciferous serving yesterday',
       icon: 'bulb',
+      color: '#3b82f6',
     },
     {
       type: 'warning',
       message: 'Detected nightshades in 2 meals - may trigger symptoms',
       icon: 'warning',
+      color: '#f59e0b',
     },
   ];
 
+  const achievements = [
+    { id: 1, name: '7-Day Streak', icon: 'flame', unlocked: true, color: '#f59e0b' },
+    { id: 2, name: 'ENS Optimizer', icon: 'fitness', unlocked: true, color: '#8b5cf6' },
+    { id: 3, name: 'Omega-3 Master', icon: 'fish', unlocked: true, color: '#3b82f6' },
+    { id: 4, name: 'Sugar-Free Week', icon: 'ban', unlocked: false, color: '#6b7280' },
+  ];
+
+  const currentLesson = {
+    week: 'Week 1: Foundation',
+    title: 'Meet Your Enteric Nervous System',
+    progress: 75,
+    timeEstimate: '5 min',
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerContent}>
@@ -85,177 +74,220 @@ export default function HomeScreen({ navigation }: any) {
               <Text style={styles.logoText}>CBI</Text>
             </View>
             <View style={styles.headerTextContainer}>
-              <Text style={styles.headerTitle}>
-                Cellular Biology Intelligence
-              </Text>
-              <Text style={styles.headerSubtitle}>
-                Enteric Nervous System Support
-              </Text>
+              <Text style={styles.headerTitle}>Cellular Biology Intelligence</Text>
+              <Text style={styles.headerSubtitle}>Enteric Nervous System Support</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.notificationButton}>
-            <Ionicons name="notifications" size={24} color="white" />
-            {notifications > 0 && (
-              <View style={styles.notificationBadge}>
-                <Text style={styles.notificationBadgeText}>
-                  {notifications}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
         </View>
 
-        {/* Quick Stats */}
-        <View style={styles.statsContainer}>
-          <View style={[styles.statCard, { backgroundColor: '#10b981' }]}>
-            <Text style={styles.statLabel}>Today's Score</Text>
-            <Text style={styles.statValue}>+{userStats.todayScore}</Text>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: '#3b82f6' }]}>
-            <Text style={styles.statLabel}>Week Average</Text>
-            <Text style={styles.statValue}>+{userStats.weekAverage}</Text>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: '#f59e0b' }]}>
-            <Text style={styles.statLabel}>Streak</Text>
-            <Text style={styles.statValue}>{userStats.streak} 🔥</Text>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: '#8b5cf6' }]}>
-            <Text style={styles.statLabel}>Energy</Text>
-            <Text style={styles.statValue}>{userStats.energyLevel}/10</Text>
-          </View>
-        </View>
-
-        {/* Quick Actions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Log a Meal</Text>
-          <View style={styles.actionsGrid}>
-            {quickActions.map((action) => (
-              <TouchableOpacity
-                key={action.id}
-                style={[
-                  styles.actionCard,
-                  { borderColor: action.color + '40' },
-                ]}
-                onPress={() => navigation.navigate('LogMeal', { method: action.id })}
-              >
-                <Ionicons
-                  name={action.icon as any}
-                  size={32}
-                  color={action.color}
-                />
-                <Text style={styles.actionName}>{action.name}</Text>
-                <Text style={styles.actionDescription}>
-                  {action.description}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Insights */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Today's Insights</Text>
-          {insights.map((insight, idx) => (
-            <View
-              key={idx}
-              style={[
-                styles.insightCard,
-                {
-                  borderLeftColor:
-                    insight.type === 'success'
-                      ? '#10b981'
-                      : insight.type === 'tip'
-                      ? '#3b82f6'
-                      : '#f59e0b',
-                },
-              ]}
-            >
-              <Ionicons
-                name={insight.icon as any}
-                size={20}
-                color={
-                  insight.type === 'success'
-                    ? '#10b981'
-                    : insight.type === 'tip'
-                    ? '#3b82f6'
-                    : '#f59e0b'
-                }
-              />
-              <Text style={styles.insightText}>{insight.message}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Recent Meals */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Today's Meals</Text>
-          {recentMeals.map((meal, idx) => (
-            <TouchableOpacity key={idx} style={styles.mealCard}>
-              <View>
-                <Text style={styles.mealName}>{meal.name}</Text>
-                <Text style={styles.mealDetails}>
-                  {meal.time} • {meal.items} items
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.scorebadge,
-                  {
-                    backgroundColor:
-                      meal.score >= 10
-                        ? '#d1fae5'
-                        : meal.score >= 5
-                        ? '#dbeafe'
-                        : '#fef3c7',
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.scoreBadgeText,
-                    {
-                      color:
-                        meal.score >= 10
-                          ? '#047857'
-                          : meal.score >= 5
-                          ? '#1e40af'
-                          : '#92400e',
-                    },
-                  ]}
-                >
-                  +{meal.score}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+        <View style={styles.content}>
+          {/* 1. Score Card - Tappable to expand */}
           <TouchableOpacity
-            style={styles.addMealButton}
-            onPress={() => navigation.navigate('LogMeal')}
+            style={styles.scoreCard}
+            onPress={() => setScoreDetailOpen(true)}
+            activeOpacity={0.9}
           >
-            <Text style={styles.addMealButtonText}>+ Add Another Meal</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Learning Module */}
-        <View style={styles.learningSection}>
-          <Text style={styles.learningSectionTitle}>Continue Learning</Text>
-          <View style={styles.learningCard}>
-            <Text style={styles.learningTitle}>Week 1: Foundation</Text>
-            <Text style={styles.learningSubtitle}>
-              Next lesson: "Meet Your Enteric Nervous System"
-            </Text>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: '75%' }]} />
+            <View style={styles.scoreCardContent}>
+              <View>
+                <Text style={styles.scoreLabel}>Today's Score</Text>
+                <Text style={styles.scoreValue}>+{userStats.todayScore}</Text>
+              </View>
+              <View style={styles.scoreRight}>
+                <View style={styles.streakBadge}>
+                  <Ionicons name="flame" size={16} color="#f59e0b" />
+                  <Text style={styles.streakText}>{userStats.streak} days</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.7)" />
+              </View>
             </View>
+            <Text style={styles.scoreTapHint}>Tap for details</Text>
+          </TouchableOpacity>
+
+          {/* 2. Continue Learning Card */}
+          <TouchableOpacity
+            style={styles.learningCard}
+            onPress={() => navigation.navigate('Learn')}
+            activeOpacity={0.9}
+          >
+            <View style={styles.learningHeader}>
+              <View style={styles.learningIcon}>
+                <Ionicons name="book" size={24} color="white" />
+              </View>
+              <View style={styles.learningInfo}>
+                <Text style={styles.learningLabel}>{currentLesson.week}</Text>
+                <Text style={styles.learningTitle}>{currentLesson.title}</Text>
+              </View>
+            </View>
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: `${currentLesson.progress}%` }]} />
+            </View>
+            <View style={styles.learningFooter}>
+              <Text style={styles.progressText}>{currentLesson.progress}% complete</Text>
+              <View style={styles.continueRow}>
+                <Text style={styles.timeEstimate}>{currentLesson.timeEstimate}</Text>
+                <Ionicons name="arrow-forward" size={16} color="white" />
+              </View>
+            </View>
+          </TouchableOpacity>
+
+          {/* Teasers Section */}
+          <View style={styles.teasersSection}>
+            {/* 3. Insights Teaser */}
             <TouchableOpacity
-              style={styles.continueButton}
-              onPress={() => navigation.navigate('Learn')}
+              style={styles.teaser}
+              onPress={() => setInsightsOpen(true)}
+              activeOpacity={0.8}
             >
-              <Text style={styles.continueButtonText}>Continue Lesson →</Text>
+              <View style={styles.teaserContent}>
+                <View style={[styles.teaserIcon, { backgroundColor: '#dbeafe' }]}>
+                  <Ionicons name="bulb" size={20} color="#3b82f6" />
+                </View>
+                <View style={styles.teaserText}>
+                  <Text style={styles.teaserTitle}>Insights</Text>
+                  <Text style={styles.teaserSubtitle}>{insights.length} tips for you today</Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+            </TouchableOpacity>
+
+            {/* 4. Achievements Teaser */}
+            <TouchableOpacity
+              style={styles.teaser}
+              onPress={() => setAchievementsOpen(true)}
+              activeOpacity={0.8}
+            >
+              <View style={styles.teaserContent}>
+                <View style={[styles.teaserIcon, { backgroundColor: '#fef3c7' }]}>
+                  <Ionicons name="trophy" size={20} color="#f59e0b" />
+                </View>
+                <View style={styles.teaserText}>
+                  <Text style={styles.teaserTitle}>Achievements</Text>
+                  <Text style={styles.teaserSubtitle}>
+                    {achievements.filter(a => a.unlocked).length} unlocked
+                  </Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
             </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
+
+      {/* Score Detail Panel */}
+      <Panel
+        isOpen={scoreDetailOpen}
+        onClose={() => setScoreDetailOpen(false)}
+        title="Today's Details"
+      >
+        {/* Stats Grid */}
+        <View style={styles.panelStatsGrid}>
+          <View style={styles.panelStat}>
+            <Text style={styles.panelStatValue}>+{userStats.todayScore}</Text>
+            <Text style={styles.panelStatLabel}>Today</Text>
+          </View>
+          <View style={styles.panelStat}>
+            <Text style={styles.panelStatValue}>+{userStats.weekAverage}</Text>
+            <Text style={styles.panelStatLabel}>Week Avg</Text>
+          </View>
+          <View style={styles.panelStat}>
+            <Text style={styles.panelStatValue}>{userStats.streak}</Text>
+            <Text style={styles.panelStatLabel}>Streak</Text>
+          </View>
+          <View style={styles.panelStat}>
+            <Text style={styles.panelStatValue}>{userStats.energyLevel}/10</Text>
+            <Text style={styles.panelStatLabel}>Energy</Text>
+          </View>
+        </View>
+
+        {/* Today's Meals */}
+        <Text style={styles.panelSectionTitle}>Today's Meals</Text>
+        {todaysMeals.map((meal, idx) => (
+          <View key={idx} style={styles.mealItem}>
+            <View style={styles.mealInfo}>
+              <Text style={styles.mealName}>{meal.name}</Text>
+              <Text style={styles.mealTime}>{meal.time}</Text>
+              <Text style={styles.mealItems}>{meal.items.join(', ')}</Text>
+            </View>
+            <View style={[
+              styles.mealScore,
+              { backgroundColor: meal.score >= 10 ? '#d1fae5' : meal.score >= 5 ? '#dbeafe' : '#fef3c7' }
+            ]}>
+              <Text style={[
+                styles.mealScoreText,
+                { color: meal.score >= 10 ? '#047857' : meal.score >= 5 ? '#1e40af' : '#92400e' }
+              ]}>
+                +{meal.score}
+              </Text>
+            </View>
+          </View>
+        ))}
+
+        {/* Weight Change */}
+        <View style={styles.weightCard}>
+          <Ionicons name="scale" size={24} color="#8b5cf6" />
+          <View style={styles.weightInfo}>
+            <Text style={styles.weightLabel}>Weight Change</Text>
+            <Text style={styles.weightValue}>{userStats.weightChange} lbs</Text>
+          </View>
+          <View style={styles.onTrackBadge}>
+            <Ionicons name="checkmark" size={14} color="#047857" />
+            <Text style={styles.onTrackText}>On Track</Text>
+          </View>
+        </View>
+      </Panel>
+
+      {/* Insights Panel */}
+      <Panel
+        isOpen={insightsOpen}
+        onClose={() => setInsightsOpen(false)}
+        title="Today's Insights"
+      >
+        {insights.map((insight, idx) => (
+          <View key={idx} style={[styles.insightCard, { borderLeftColor: insight.color }]}>
+            <Ionicons name={insight.icon as any} size={24} color={insight.color} />
+            <Text style={styles.insightText}>{insight.message}</Text>
+          </View>
+        ))}
+      </Panel>
+
+      {/* Achievements Panel */}
+      <Panel
+        isOpen={achievementsOpen}
+        onClose={() => setAchievementsOpen(false)}
+        title="Achievements"
+      >
+        <View style={styles.achievementsGrid}>
+          {achievements.map((achievement) => (
+            <View
+              key={achievement.id}
+              style={[
+                styles.achievementCard,
+                !achievement.unlocked && styles.achievementLocked,
+              ]}
+            >
+              <View style={[
+                styles.achievementIcon,
+                { backgroundColor: achievement.unlocked ? achievement.color : '#e5e7eb' }
+              ]}>
+                <Ionicons
+                  name={achievement.icon as any}
+                  size={28}
+                  color={achievement.unlocked ? 'white' : '#9ca3af'}
+                />
+              </View>
+              <Text style={[
+                styles.achievementName,
+                !achievement.unlocked && styles.achievementNameLocked
+              ]}>
+                {achievement.name}
+              </Text>
+              {achievement.unlocked && (
+                <Ionicons name="checkmark-circle" size={18} color="#10b981" />
+              )}
+            </View>
+          ))}
+        </View>
+      </Panel>
     </SafeAreaView>
   );
 }
@@ -271,14 +303,10 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#1e3a8a',
     padding: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
   },
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
   },
   logoContainer: {
     width: 48,
@@ -306,213 +334,319 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#bfdbfe',
   },
-  notificationButton: {
-    position: 'relative',
-  },
-  notificationBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    backgroundColor: '#ef4444',
-    borderRadius: 10,
-    width: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  notificationBadgeText: {
-    color: 'white',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: 12,
-    gap: 8,
-  },
-  statCard: {
-    flex: 1,
-    minWidth: '45%',
+  content: {
     padding: 16,
-    borderRadius: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    gap: 16,
   },
-  statLabel: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 4,
+  // Score Card
+  scoreCard: {
+    backgroundColor: '#10b981',
+    borderRadius: 16,
+    padding: 20,
+    elevation: 4,
+    shadowColor: '#10b981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  section: {
-    padding: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    color: '#1f2937',
-  },
-  actionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  actionCard: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 2,
-    alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  actionName: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginTop: 8,
-    marginBottom: 4,
-    color: '#1f2937',
-  },
-  actionDescription: {
-    fontSize: 11,
-    color: '#6b7280',
-    textAlign: 'center',
-  },
-  insightCard: {
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
-  insightText: {
-    flex: 1,
-    fontSize: 13,
-    color: '#1f2937',
-    fontWeight: '600',
-  },
-  mealCard: {
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 12,
+  scoreCardContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
   },
-  mealName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1f2937',
+  scoreLabel: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
     marginBottom: 4,
   },
-  mealDetails: {
-    fontSize: 13,
-    color: '#6b7280',
-  },
-  scoreBadge: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  scoreBadgeText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  addMealButton: {
-    borderWidth: 2,
-    borderColor: '#d1d5db',
-    borderStyle: 'dashed',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  addMealButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6b7280',
-  },
-  learningSection: {
-    backgroundColor: '#3b82f6',
-    margin: 16,
-    padding: 20,
-    borderRadius: 12,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-  },
-  learningSectionTitle: {
-    fontSize: 18,
+  scoreValue: {
+    fontSize: 42,
     fontWeight: 'bold',
     color: 'white',
+  },
+  scoreRight: {
+    alignItems: 'flex-end',
+    gap: 12,
+  },
+  streakBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 4,
+  },
+  streakText: {
+    color: 'white',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  scoreTapHint: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginTop: 12,
+    textAlign: 'center',
+  },
+  // Learning Card
+  learningCard: {
+    backgroundColor: '#8b5cf6',
+    borderRadius: 16,
+    padding: 20,
+    elevation: 4,
+    shadowColor: '#8b5cf6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  learningHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     marginBottom: 16,
   },
-  learningCard: {
+  learningIcon: {
+    width: 44,
+    height: 44,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    padding: 16,
-    borderRadius: 8,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  learningInfo: {
+    flex: 1,
+  },
+  learningLabel: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 2,
   },
   learningTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: 'white',
-    marginBottom: 8,
-  },
-  learningSubtitle: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginBottom: 12,
   },
   progressBar: {
-    height: 8,
+    height: 6,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 4,
+    borderRadius: 3,
     marginBottom: 12,
   },
   progressFill: {
     height: '100%',
     backgroundColor: 'white',
-    borderRadius: 4,
+    borderRadius: 3,
   },
-  continueButton: {
-    backgroundColor: 'white',
-    padding: 12,
-    borderRadius: 8,
+  learningFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  continueButtonText: {
+  progressText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  continueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  timeEstimate: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '500',
+  },
+  // Teasers
+  teasersSection: {
+    gap: 12,
+  },
+  teaser: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  teaserContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  teaserIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  teaserText: {
+    gap: 2,
+  },
+  teaserTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  teaserSubtitle: {
+    fontSize: 13,
+    color: '#6b7280',
+  },
+  // Panel Styles
+  panelStatsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 24,
+  },
+  panelStat: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: '#f3f4f6',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  panelStatValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 4,
+  },
+  panelStatLabel: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  panelSectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 12,
+  },
+  mealItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#f9fafb',
+    padding: 14,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  mealInfo: {
+    flex: 1,
+  },
+  mealName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  mealTime: {
+    fontSize: 13,
+    color: '#6b7280',
+    marginBottom: 4,
+  },
+  mealItems: {
+    fontSize: 12,
+    color: '#9ca3af',
+  },
+  mealScore: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
+  },
+  mealScoreText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  weightCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f3ff',
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 16,
+    gap: 12,
+  },
+  weightInfo: {
+    flex: 1,
+  },
+  weightLabel: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  weightValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1f2937',
+  },
+  onTrackBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#d1fae5',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 4,
+  },
+  onTrackText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#047857',
+  },
+  // Insights Panel
+  insightCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f9fafb',
+    padding: 16,
+    borderRadius: 10,
+    borderLeftWidth: 4,
+    marginBottom: 12,
+    gap: 12,
+  },
+  insightText: {
+    flex: 1,
+    fontSize: 15,
+    color: '#1f2937',
+    lineHeight: 22,
+  },
+  // Achievements Panel
+  achievementsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  achievementCard: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: '#f9fafb',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    gap: 8,
+  },
+  achievementLocked: {
+    opacity: 0.5,
+  },
+  achievementIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  achievementName: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#3b82f6',
+    color: '#1f2937',
+    textAlign: 'center',
+  },
+  achievementNameLocked: {
+    color: '#9ca3af',
   },
 });
