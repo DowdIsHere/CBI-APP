@@ -8,9 +8,16 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import ScoreCard from '../components/home/ScoreCard';
+import LearningCard from '../components/home/LearningCard';
+import InsightTeaser from '../components/home/InsightTeaser';
+import AchievementTeaser from '../components/home/AchievementTeaser';
+import ScoreDetailPanel from '../components/panels/ScoreDetailPanel';
+import InsightsPanel from '../components/panels/InsightsPanel';
 
 export default function HomeScreen({ navigation }: any) {
-  const [notifications] = useState(3);
+  const [scoreDetailOpen, setScoreDetailOpen] = useState(false);
+  const [insightsOpen, setInsightsOpen] = useState(false);
 
   const userStats = {
     todayScore: 14,
@@ -26,58 +33,41 @@ export default function HomeScreen({ navigation }: any) {
     { name: 'Snack', time: '3:15 PM', score: 4, items: 2 },
   ];
 
-  const quickActions = [
-    {
-      id: 'photo',
-      name: 'Photo',
-      description: 'Snap & analyze',
-      icon: 'camera',
-      color: '#3b82f6',
-    },
-    {
-      id: 'batch',
-      name: 'Batch',
-      description: 'Multiple meals',
-      icon: 'cube',
-      color: '#8b5cf6',
-    },
-    {
-      id: 'barcode',
-      name: 'Scan',
-      description: 'Packaged foods',
-      icon: 'scan',
-      color: '#10b981',
-    },
-    {
-      id: 'manual',
-      name: 'Type',
-      description: 'Text entry',
-      icon: 'create',
-      color: '#f59e0b',
-    },
-  ];
-
   const insights = [
     {
-      type: 'success',
+      type: 'success' as const,
       message: 'Your energy levels are up 60% this week!',
       icon: 'flash',
     },
     {
-      type: 'tip',
+      type: 'tip' as const,
       message: 'Add more sulforaphane - only 1 cruciferous serving yesterday',
       icon: 'bulb',
     },
     {
-      type: 'warning',
+      type: 'warning' as const,
       message: 'Detected nightshades in 2 meals - may trigger symptoms',
       icon: 'warning',
     },
   ];
 
+  const achievements = [
+    { id: 1, name: '7-Day Streak', icon: '🔥', unlocked: true },
+    { id: 2, name: 'ENS Optimizer', icon: '🧠', unlocked: true },
+    { id: 3, name: 'Omega-3 Master', icon: '🐟', unlocked: true },
+    { id: 4, name: 'Sugar-Free Week', icon: '🚫', unlocked: false },
+  ];
+
+  const learningProgress = {
+    currentModule: 'Week 1: Foundation',
+    currentLesson: 'Meet Your Enteric Nervous System',
+    progress: 75,
+    timeEstimate: '5 min',
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerContent}>
@@ -85,177 +75,81 @@ export default function HomeScreen({ navigation }: any) {
               <Text style={styles.logoText}>CBI</Text>
             </View>
             <View style={styles.headerTextContainer}>
-              <Text style={styles.headerTitle}>
-                Cellular Biology Intelligence
-              </Text>
-              <Text style={styles.headerSubtitle}>
-                Enteric Nervous System Support
+              <Text style={styles.greeting}>Good morning!</Text>
+              <Text style={styles.subtitle}>
+                Your ENS is thanking you today
               </Text>
             </View>
           </View>
           <TouchableOpacity style={styles.notificationButton}>
-            <Ionicons name="notifications" size={24} color="white" />
-            {notifications > 0 && (
-              <View style={styles.notificationBadge}>
-                <Text style={styles.notificationBadgeText}>
-                  {notifications}
-                </Text>
-              </View>
-            )}
+            <Ionicons name="notifications-outline" size={24} color="#1f2937" />
           </TouchableOpacity>
         </View>
 
-        {/* Quick Stats */}
-        <View style={styles.statsContainer}>
-          <View style={[styles.statCard, { backgroundColor: '#10b981' }]}>
-            <Text style={styles.statLabel}>Today's Score</Text>
-            <Text style={styles.statValue}>+{userStats.todayScore}</Text>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: '#3b82f6' }]}>
-            <Text style={styles.statLabel}>Week Average</Text>
-            <Text style={styles.statValue}>+{userStats.weekAverage}</Text>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: '#f59e0b' }]}>
-            <Text style={styles.statLabel}>Streak</Text>
-            <Text style={styles.statValue}>{userStats.streak} 🔥</Text>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: '#8b5cf6' }]}>
-            <Text style={styles.statLabel}>Energy</Text>
-            <Text style={styles.statValue}>{userStats.energyLevel}/10</Text>
-          </View>
-        </View>
+        {/* Main Content */}
+        <View style={styles.content}>
+          {/* Score Card - Tap to expand */}
+          <ScoreCard
+            todayScore={userStats.todayScore}
+            weekAverage={userStats.weekAverage}
+            streak={userStats.streak}
+            onPress={() => setScoreDetailOpen(true)}
+          />
 
-        {/* Quick Actions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Log a Meal</Text>
-          <View style={styles.actionsGrid}>
-            {quickActions.map((action) => (
-              <TouchableOpacity
-                key={action.id}
-                style={[
-                  styles.actionCard,
-                  { borderColor: action.color + '40' },
-                ]}
-                onPress={() => navigation.navigate('LogMeal', { method: action.id })}
-              >
-                <Ionicons
-                  name={action.icon as any}
-                  size={32}
-                  color={action.color}
-                />
-                <Text style={styles.actionName}>{action.name}</Text>
-                <Text style={styles.actionDescription}>
-                  {action.description}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Insights */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Today's Insights</Text>
-          {insights.map((insight, idx) => (
-            <View
-              key={idx}
-              style={[
-                styles.insightCard,
-                {
-                  borderLeftColor:
-                    insight.type === 'success'
-                      ? '#10b981'
-                      : insight.type === 'tip'
-                      ? '#3b82f6'
-                      : '#f59e0b',
-                },
-              ]}
-            >
-              <Ionicons
-                name={insight.icon as any}
-                size={20}
-                color={
-                  insight.type === 'success'
-                    ? '#10b981'
-                    : insight.type === 'tip'
-                    ? '#3b82f6'
-                    : '#f59e0b'
-                }
-              />
-              <Text style={styles.insightText}>{insight.message}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Recent Meals */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Today's Meals</Text>
-          {recentMeals.map((meal, idx) => (
-            <TouchableOpacity key={idx} style={styles.mealCard}>
-              <View>
-                <Text style={styles.mealName}>{meal.name}</Text>
-                <Text style={styles.mealDetails}>
-                  {meal.time} • {meal.items} items
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.scorebadge,
-                  {
-                    backgroundColor:
-                      meal.score >= 10
-                        ? '#d1fae5'
-                        : meal.score >= 5
-                        ? '#dbeafe'
-                        : '#fef3c7',
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.scoreBadgeText,
-                    {
-                      color:
-                        meal.score >= 10
-                          ? '#047857'
-                          : meal.score >= 5
-                          ? '#1e40af'
-                          : '#92400e',
-                    },
-                  ]}
-                >
-                  +{meal.score}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-          <TouchableOpacity
-            style={styles.addMealButton}
-            onPress={() => navigation.navigate('LogMeal')}
-          >
-            <Text style={styles.addMealButtonText}>+ Add Another Meal</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Learning Module */}
-        <View style={styles.learningSection}>
-          <Text style={styles.learningSectionTitle}>Continue Learning</Text>
-          <View style={styles.learningCard}>
-            <Text style={styles.learningTitle}>Week 1: Foundation</Text>
-            <Text style={styles.learningSubtitle}>
-              Next lesson: "Meet Your Enteric Nervous System"
-            </Text>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: '75%' }]} />
-            </View>
-            <TouchableOpacity
-              style={styles.continueButton}
+          {/* Continue Learning Card */}
+          <View style={styles.section}>
+            <LearningCard
+              currentModule={learningProgress.currentModule}
+              currentLesson={learningProgress.currentLesson}
+              progress={learningProgress.progress}
+              timeEstimate={learningProgress.timeEstimate}
               onPress={() => navigation.navigate('Learn')}
-            >
-              <Text style={styles.continueButtonText}>Continue Lesson →</Text>
-            </TouchableOpacity>
+            />
+          </View>
+
+          {/* Teasers Section */}
+          <View style={styles.teasers}>
+            <InsightTeaser
+              insights={insights}
+              onPress={() => setInsightsOpen(true)}
+            />
+            <View style={styles.teaserSpacer} />
+            <AchievementTeaser
+              achievements={achievements}
+              onPress={() => navigation.navigate('You')}
+            />
+          </View>
+
+          {/* Quick Tip */}
+          <View style={styles.tipCard}>
+            <View style={styles.tipIcon}>
+              <Ionicons name="leaf" size={20} color="#10b981" />
+            </View>
+            <View style={styles.tipContent}>
+              <Text style={styles.tipTitle}>Daily Tip</Text>
+              <Text style={styles.tipText}>
+                Try adding wild-caught salmon or sardines to your next meal for
+                an omega-3 boost!
+              </Text>
+            </View>
           </View>
         </View>
       </ScrollView>
+
+      {/* Score Detail Panel */}
+      <ScoreDetailPanel
+        isOpen={scoreDetailOpen}
+        onClose={() => setScoreDetailOpen(false)}
+        stats={userStats}
+        meals={recentMeals}
+      />
+
+      {/* Insights Panel */}
+      <InsightsPanel
+        isOpen={insightsOpen}
+        onClose={() => setInsightsOpen(false)}
+        insights={insights}
+      />
     </SafeAreaView>
   );
 }
@@ -269,11 +163,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    backgroundColor: '#1e3a8a',
-    padding: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
   headerContent: {
     flexDirection: 'row',
@@ -281,238 +176,87 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   logoContainer: {
-    width: 48,
-    height: 48,
-    backgroundColor: 'white',
-    borderRadius: 8,
+    width: 44,
+    height: 44,
+    backgroundColor: '#1e3a8a',
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   logoText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#1e3a8a',
+    color: 'white',
   },
   headerTextContainer: {
     flex: 1,
   },
-  headerTitle: {
-    fontSize: 16,
+  greeting: {
+    fontSize: 18,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#1f2937',
   },
-  headerSubtitle: {
-    fontSize: 10,
-    color: '#bfdbfe',
+  subtitle: {
+    fontSize: 13,
+    color: '#6b7280',
+    marginTop: 2,
   },
   notificationButton: {
-    position: 'relative',
+    width: 44,
+    height: 44,
+    backgroundColor: 'white',
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  notificationBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    backgroundColor: '#ef4444',
-    borderRadius: 10,
-    width: 20,
-    height: 20,
+  content: {
+    padding: 20,
+  },
+  section: {
+    marginTop: 20,
+  },
+  teasers: {
+    marginTop: 20,
+  },
+  teaserSpacer: {
+    height: 12,
+  },
+  tipCard: {
+    flexDirection: 'row',
+    backgroundColor: '#ecfdf5',
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 20,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+  },
+  tipIcon: {
+    width: 40,
+    height: 40,
+    backgroundColor: '#d1fae5',
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  notificationBadgeText: {
-    color: 'white',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: 12,
-    gap: 8,
-  },
-  statCard: {
+  tipContent: {
     flex: 1,
-    minWidth: '45%',
-    padding: 16,
-    borderRadius: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
   },
-  statLabel: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 4,
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  section: {
-    padding: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    color: '#1f2937',
-  },
-  actionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  actionCard: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 2,
-    alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  actionName: {
+  tipTitle: {
     fontSize: 14,
     fontWeight: 'bold',
-    marginTop: 8,
-    marginBottom: 4,
-    color: '#1f2937',
-  },
-  actionDescription: {
-    fontSize: 11,
-    color: '#6b7280',
-    textAlign: 'center',
-  },
-  insightCard: {
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
-  insightText: {
-    flex: 1,
-    fontSize: 13,
-    color: '#1f2937',
-    fontWeight: '600',
-  },
-  mealCard: {
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
-  mealName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1f2937',
+    color: '#047857',
     marginBottom: 4,
   },
-  mealDetails: {
+  tipText: {
     fontSize: 13,
-    color: '#6b7280',
-  },
-  scoreBadge: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  scoreBadgeText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  addMealButton: {
-    borderWidth: 2,
-    borderColor: '#d1d5db',
-    borderStyle: 'dashed',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  addMealButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6b7280',
-  },
-  learningSection: {
-    backgroundColor: '#3b82f6',
-    margin: 16,
-    padding: 20,
-    borderRadius: 12,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-  },
-  learningSectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 16,
-  },
-  learningCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    padding: 16,
-    borderRadius: 8,
-  },
-  learningTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'white',
-    marginBottom: 8,
-  },
-  learningSubtitle: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginBottom: 12,
-  },
-  progressBar: {
-    height: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 4,
-    marginBottom: 12,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: 'white',
-    borderRadius: 4,
-  },
-  continueButton: {
-    backgroundColor: 'white',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  continueButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#3b82f6',
+    color: '#065f46',
+    lineHeight: 18,
   },
 });
