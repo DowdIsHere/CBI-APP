@@ -3,663 +3,479 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   Alert,
   ActivityIndicator,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Camera, CameraView } from 'expo-camera';
 import { BarcodeScanningResult } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 
-export default function MealEntryScreen({ route }: any) {
-  const [inputMethod, setInputMethod] = useState<string | null>(
-    route?.params?.method || null
-  );
+const { height } = Dimensions.get('window');
+
+export default function MealEntryScreen({ navigation }: any) {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [detectedFoods, setDetectedFoods] = useState<any[]>([]);
-  const [cameraActive, setCameraActive] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [triggerDetected, setTriggerDetected] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [detectedProduct, setDetectedProduct] = useState<any>(null);
 
   useEffect(() => {
     (async () => {
-      const { status: cameraStatus } =
-        await Camera.requestCameraPermissionsAsync();
-      const { status: libraryStatus } =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const { status: cameraStatus } = await Camera.requestCameraPermissionsAsync();
+      const { status: libraryStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       setHasPermission(cameraStatus === 'granted');
     })();
   }, []);
 
-  const inputMethods = [
-    {
-      id: 'photo',
-      name: 'Photo',
-      description: 'Snap a pic of your plate',
-      icon: 'camera',
-      color: '#3b82f6',
-    },
-    {
-      id: 'batch',
-      name: 'Batch Scan',
-      description: 'Analyze multiple meals at once',
-      icon: 'cube',
-      color: '#8b5cf6',
-    },
-    {
-      id: 'barcode',
-      name: 'Barcode',
-      description: 'Scan packaged foods',
-      icon: 'scan',
-      color: '#10b981',
-    },
-    {
-      id: 'manual',
-      name: 'Type It',
-      description: 'Traditional text entry',
-      icon: 'create',
-      color: '#f59e0b',
-    },
-  ];
+  const handleCapture = async () => {
+    // Simulate photo capture and analysis
+    setScanning(true);
 
-  const handleInputMethod = async (method: string) => {
-    setInputMethod(method);
-
-    if (method === 'photo') {
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 1,
+    setTimeout(() => {
+      setScanning(false);
+      // Simulate trigger detection for demo
+      setTriggerDetected(true);
+      setDetectedProduct({
+        name: 'Pacific Foods Bone Broth',
+        trigger: 'YEAST EXTRACT',
+        dateMarked: '11/15/24',
+        reaction: 'Headache within 2 hours',
       });
-
-      if (!result.canceled) {
-        simulatePhotoAnalysis();
-      } else {
-        setInputMethod(null);
-      }
-    } else if (method === 'barcode') {
-      setCameraActive(true);
-    } else if (method === 'batch') {
-      simulateBatchAnalysis();
-    } else if (method === 'manual') {
-      Alert.alert('Manual Entry', 'Manual entry feature coming soon!');
-      setInputMethod(null);
-    }
+    }, 2000);
   };
 
   const handleBarCodeScanned = ({ type, data }: BarcodeScanningResult) => {
-    setCameraActive(false);
-    simulateBarcodeScanning(data);
-  };
+    setScanning(true);
 
-  const simulatePhotoAnalysis = () => {
-    setAnalyzing(true);
     setTimeout(() => {
-      setDetectedFoods([
-        {
-          id: Date.now(),
-          name: 'Grilled Salmon',
-          portionSize: '6 oz',
-          score: 3,
-          warnings: [],
-        },
-        {
-          id: Date.now() + 1,
-          name: 'Steamed Broccoli',
-          portionSize: '1.5 cups',
-          score: 2,
-          warnings: [],
-        },
-      ]);
-      setAnalyzing(false);
-    }, 2000);
-  };
-
-  const simulateBatchAnalysis = () => {
-    setAnalyzing(true);
-    setTimeout(() => {
-      setDetectedFoods([
-        {
-          id: Date.now(),
-          name: 'Meal Prep Container 1',
-          items: [
-            { name: 'Grilled Chicken', portion: '6 oz', score: 1 },
-            { name: 'Sweet Potato', portion: '1 cup', score: 1 },
-            { name: 'Asparagus', portion: '1 cup', score: 2 },
-          ],
-          totalScore: 4,
-        },
-      ]);
-      setAnalyzing(false);
-    }, 2000);
-  };
-
-  const simulateBarcodeScanning = (barcode: string) => {
-    setAnalyzing(true);
-    setTimeout(() => {
-      setDetectedFoods([
-        {
-          id: Date.now(),
-          name: 'Wild Planet Wild Sardines',
-          brand: 'Wild Planet',
-          upc: barcode,
-          servingSize: '1 can (3.75 oz)',
-          score: 2,
-          warnings: [],
-        },
-      ]);
-      setAnalyzing(false);
+      setScanning(false);
+      // Simulate finding a trigger ingredient
+      setTriggerDetected(true);
+      setDetectedProduct({
+        name: 'Pacific Foods Bone Broth',
+        trigger: 'YEAST EXTRACT',
+        dateMarked: '11/15/24',
+        reaction: 'Headache within 2 hours',
+      });
     }, 1500);
   };
 
-  const saveMeal = () => {
-    const totalScore = detectedFoods.reduce((sum, food) => {
-      if (food.items) return sum + food.totalScore;
-      return sum + food.score;
-    }, 0);
+  const handleTakePhoto = async () => {
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
 
-    Alert.alert(
-      'Meal Saved!',
-      `Score: +${totalScore}. Check your Progress Tracker to see the impact.`,
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            setInputMethod(null);
-            setDetectedFoods([]);
-          },
-        },
-      ]
-    );
+    if (!result.canceled) {
+      handleCapture();
+    }
   };
 
-  const removeFood = (foodId: number) => {
-    setDetectedFoods(detectedFoods.filter((f) => f.id !== foodId));
+  const dismissTrigger = () => {
+    setTriggerDetected(false);
+    setDetectedProduct(null);
   };
 
-  const reset = () => {
-    setInputMethod(null);
-    setDetectedFoods([]);
-    setCameraActive(false);
+  const goBack = () => {
+    navigation.goBack();
   };
 
-  if (cameraActive && hasPermission) {
+  if (hasPermission === null) {
     return (
-      <View style={styles.cameraContainer}>
-        <CameraView
-          style={styles.camera}
-          facing="back"
-          onBarcodeScanned={handleBarCodeScanned}
-          barcodeScannerSettings={{
-            barcodeTypes: [
-              'upc_a',
-              'upc_e',
-              'ean8',
-              'ean13',
-              'code128',
-              'code39',
-            ],
-          }}
-        >
-          <View style={styles.cameraOverlay}>
-            <View style={styles.cameraHeader}>
-              <TouchableOpacity
-                style={styles.cameraCloseButton}
-                onPress={() => {
-                  setCameraActive(false);
-                  setInputMethod(null);
-                }}
-              >
-                <Ionicons name="close" size={30} color="white" />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.scanArea}>
-              <View style={styles.scanFrame} />
-              <Text style={styles.scanText}>Position barcode in frame</Text>
-            </View>
-          </View>
-        </CameraView>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#10b981" />
+        <Text style={styles.loadingText}>Requesting camera permission...</Text>
+      </View>
+    );
+  }
+
+  if (hasPermission === false) {
+    return (
+      <View style={styles.noPermissionContainer}>
+        <Ionicons name="camera-outline" size={64} color="#9ca3af" />
+        <Text style={styles.noPermissionTitle}>Camera Access Required</Text>
+        <Text style={styles.noPermissionText}>
+          Please enable camera access in your device settings to use this feature.
+        </Text>
+        <TouchableOpacity style={styles.backButton} onPress={goBack}>
+          <Text style={styles.backButtonText}>Go Back</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
-        {/* Method Selection */}
-        {!inputMethod && !analyzing && detectedFoods.length === 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
-              How would you like to add your meal?
-            </Text>
-            <View style={styles.methodsGrid}>
-              {inputMethods.map((method) => (
-                <TouchableOpacity
-                  key={method.id}
-                  style={[
-                    styles.methodCard,
-                    { borderColor: method.color + '40' },
-                  ]}
-                  onPress={() => handleInputMethod(method.id)}
-                >
-                  <Ionicons
-                    name={method.icon as any}
-                    size={48}
-                    color={method.color}
-                  />
-                  <Text style={styles.methodName}>{method.name}</Text>
-                  <Text style={styles.methodDescription}>
-                    {method.description}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Features */}
-            <View style={styles.featuresSection}>
-              <View style={styles.featureCard}>
-                <Ionicons name="camera" size={24} color="#3b82f6" />
-                <View style={styles.featureContent}>
-                  <Text style={styles.featureTitle}>Photo Analysis</Text>
-                  <Text style={styles.featureText}>
-                    AI identifies all foods instantly
-                  </Text>
-                </View>
+    <View style={styles.container}>
+      {/* Camera View */}
+      <CameraView
+        style={styles.camera}
+        facing="back"
+        onBarcodeScanned={!scanning && !triggerDetected ? handleBarCodeScanned : undefined}
+        barcodeScannerSettings={{
+          barcodeTypes: ['upc_a', 'upc_e', 'ean8', 'ean13', 'code128', 'code39'],
+        }}
+        onCameraReady={() => setCameraReady(true)}
+      >
+        <View style={styles.cameraContent}>
+          {/* Camera Instructions */}
+          {!scanning && !triggerDetected && (
+            <View style={styles.instructionContainer}>
+              <View style={styles.viewfinderFrame}>
+                <Ionicons name="camera" size={64} color="white" />
               </View>
-              <View style={styles.featureCard}>
-                <Ionicons name="scan" size={24} color="#10b981" />
-                <View style={styles.featureContent}>
-                  <Text style={styles.featureTitle}>Barcode Scanner</Text>
-                  <Text style={styles.featureText}>
-                    Hidden inflammatory oils detected
-                  </Text>
-                </View>
+              <Text style={styles.instructionTitle}>Point at your meal</Text>
+              <Text style={styles.instructionSubtitle}>Center food in frame</Text>
+            </View>
+          )}
+
+          {/* Scanning State */}
+          {scanning && (
+            <View style={styles.scanningContainer}>
+              <View style={styles.scanningFrame}>
+                <Ionicons name="camera" size={64} color="#3b82f6" />
+              </View>
+              <Text style={styles.scanningTitle}>Scanning...</Text>
+              <View style={styles.scanningDots}>
+                <View style={[styles.dot, styles.dot1]} />
+                <View style={[styles.dot, styles.dot2]} />
+                <View style={[styles.dot, styles.dot3]} />
               </View>
             </View>
-          </View>
-        )}
+          )}
 
-        {/* Analyzing State */}
-        {analyzing && (
-          <View style={styles.analyzingContainer}>
-            <ActivityIndicator size="large" color="#3b82f6" />
-            <Text style={styles.analyzingTitle}>
-              {inputMethod === 'photo' && 'Analyzing Your Photo...'}
-              {inputMethod === 'batch' && 'Scanning Multiple Meals...'}
-              {inputMethod === 'barcode' && 'Looking Up Product...'}
-            </Text>
-            <Text style={styles.analyzingSubtitle}>
-              AI is working its magic
-            </Text>
-          </View>
-        )}
-
-        {/* Results */}
-        {!analyzing && detectedFoods.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Detected Items</Text>
-            {detectedFoods.map((food) => (
-              <View key={food.id} style={styles.foodCard}>
-                <View style={styles.foodHeader}>
-                  <View style={styles.foodInfo}>
-                    <Text style={styles.foodName}>{food.name}</Text>
-                    {food.brand && (
-                      <Text style={styles.foodBrand}>{food.brand}</Text>
-                    )}
-                    {food.portionSize && (
-                      <Text style={styles.foodPortion}>{food.portionSize}</Text>
-                    )}
-                    {food.servingSize && (
-                      <Text style={styles.foodPortion}>{food.servingSize}</Text>
-                    )}
-                  </View>
-                  <View>
-                    <View
-                      style={[
-                        styles.scoreBadge,
-                        {
-                          backgroundColor:
-                            food.score >= 2 ? '#d1fae5' : '#dbeafe',
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.scoreBadgeText,
-                          { color: food.score >= 2 ? '#047857' : '#1e40af' },
-                        ]}
-                      >
-                        +{food.score}
-                      </Text>
-                    </View>
-                    <TouchableOpacity
-                      style={styles.removeButton}
-                      onPress={() => removeFood(food.id)}
-                    >
-                      <Ionicons name="trash" size={20} color="#ef4444" />
-                    </TouchableOpacity>
-                  </View>
+          {/* Trigger Detected Alert */}
+          {triggerDetected && detectedProduct && (
+            <View style={styles.triggerAlert}>
+              <View style={styles.triggerHeader}>
+                <View style={styles.triggerIconContainer}>
+                  <Ionicons name="alert-circle" size={28} color="white" />
                 </View>
-
-                {/* Batch Items */}
-                {food.items && (
-                  <View style={styles.batchItems}>
-                    {food.items.map((item: any, idx: number) => (
-                      <View key={idx} style={styles.batchItem}>
-                        <Text style={styles.batchItemName}>{item.name}</Text>
-                        <Text style={styles.batchItemPortion}>
-                          ({item.portion})
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
-            ))}
-
-            {/* Summary */}
-            <View style={styles.summaryCard}>
-              <Text style={styles.summaryTitle}>Meal Summary</Text>
-              <View style={styles.summaryContent}>
-                <View style={styles.summaryItem}>
-                  <Text style={styles.summaryLabel}>Total Score</Text>
-                  <Text style={styles.summaryValue}>
-                    +
-                    {detectedFoods.reduce(
-                      (sum, f) => sum + (f.totalScore || f.score),
-                      0
-                    )}
-                  </Text>
-                </View>
-                <View style={styles.summaryItem}>
-                  <Text style={styles.summaryLabel}>Items Detected</Text>
-                  <Text style={styles.summaryValue}>{detectedFoods.length}</Text>
+                <View style={styles.triggerHeaderText}>
+                  <Text style={styles.triggerTitle}>TRIGGER DETECTED</Text>
+                  <Text style={styles.triggerProduct}>{detectedProduct.name}</Text>
                 </View>
               </View>
-            </View>
 
-            {/* Actions */}
-            <View style={styles.actions}>
-              <TouchableOpacity style={styles.resetButton} onPress={reset}>
-                <Text style={styles.resetButtonText}>Start Over</Text>
+              <View style={styles.triggerDetails}>
+                <Text style={styles.triggerIngredient}>🔴 {detectedProduct.trigger}</Text>
+                <Text style={styles.triggerDate}>
+                  You marked this RED on {detectedProduct.dateMarked}
+                </Text>
+                <Text style={styles.triggerReaction}>
+                  Last reaction: {detectedProduct.reaction}
+                </Text>
+              </View>
+
+              <TouchableOpacity style={styles.avoidButton} onPress={dismissTrigger}>
+                <Text style={styles.avoidButtonText}>Avoid This Product</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.saveButton} onPress={saveMeal}>
-                <Text style={styles.saveButtonText}>Save Meal</Text>
+
+              <TouchableOpacity style={styles.alternativesButton} onPress={dismissTrigger}>
+                <Text style={styles.alternativesButtonText}>See Safe Alternatives →</Text>
               </TouchableOpacity>
             </View>
+          )}
+
+          {/* Close Button */}
+          <TouchableOpacity style={styles.closeButton} onPress={goBack}>
+            <Ionicons name="close" size={24} color="white" />
+          </TouchableOpacity>
+        </View>
+      </CameraView>
+
+      {/* Bottom Controls */}
+      {!triggerDetected && (
+        <View style={styles.bottomControls}>
+          <TouchableOpacity
+            style={styles.captureButton}
+            onPress={handleTakePhoto}
+            disabled={scanning}
+          >
+            <View style={styles.captureButtonInner} />
+          </TouchableOpacity>
+
+          <View style={styles.methodButtons}>
+            <TouchableOpacity style={styles.methodButton}>
+              <Ionicons name="barcode-outline" size={18} color="white" />
+              <Text style={styles.methodButtonText}>Barcode</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.methodButton}>
+              <Ionicons name="create-outline" size={18} color="white" />
+              <Text style={styles.methodButtonText}>Type</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.methodButton}>
+              <Ionicons name="cube-outline" size={18} color="white" />
+              <Text style={styles.methodButtonText}>Batch</Text>
+            </TouchableOpacity>
           </View>
-        )}
-      </ScrollView>
-    </SafeAreaView>
+        </View>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#111827',
   },
-  scrollView: {
+  loadingContainer: {
     flex: 1,
+    backgroundColor: '#111827',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
   },
-  section: {
-    padding: 16,
+  loadingText: {
+    color: 'white',
+    fontSize: 16,
   },
-  sectionTitle: {
+  noPermissionContainer: {
+    flex: 1,
+    backgroundColor: '#111827',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+    gap: 16,
+  },
+  noPermissionTitle: {
+    color: 'white',
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 16,
-    color: '#1f2937',
-  },
-  methodsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 24,
-  },
-  methodCard: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 12,
-    borderWidth: 2,
-    alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  methodName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginTop: 12,
-    marginBottom: 4,
-    color: '#1f2937',
-  },
-  methodDescription: {
-    fontSize: 12,
-    color: '#6b7280',
     textAlign: 'center',
   },
-  featuresSection: {
-    gap: 12,
-  },
-  featureCard: {
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
-  featureContent: {
-    flex: 1,
-  },
-  featureTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 4,
-  },
-  featureText: {
-    fontSize: 12,
-    color: '#6b7280',
-  },
-  analyzingContainer: {
-    padding: 48,
-    alignItems: 'center',
-  },
-  analyzingTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginTop: 24,
-    marginBottom: 8,
-    color: '#1f2937',
-  },
-  analyzingSubtitle: {
-    fontSize: 14,
-    color: '#6b7280',
-  },
-  foodCard: {
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  foodHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  foodInfo: {
-    flex: 1,
-  },
-  foodName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 4,
-  },
-  foodBrand: {
-    fontSize: 13,
-    color: '#6b7280',
-    marginBottom: 2,
-  },
-  foodPortion: {
-    fontSize: 12,
+  noPermissionText: {
     color: '#9ca3af',
-  },
-  scoreBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    marginBottom: 8,
-    alignSelf: 'flex-end',
-  },
-  scoreBadgeText: {
     fontSize: 14,
-    fontWeight: 'bold',
+    textAlign: 'center',
   },
-  removeButton: {
-    alignSelf: 'flex-end',
-  },
-  batchItems: {
-    marginTop: 12,
-    gap: 8,
-  },
-  batchItem: {
-    backgroundColor: '#f3f4f6',
-    padding: 12,
-    borderRadius: 6,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  batchItemName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1f2937',
-  },
-  batchItemPortion: {
-    fontSize: 12,
-    color: '#6b7280',
-  },
-  summaryCard: {
-    backgroundColor: '#ecfdf5',
-    padding: 16,
+  backButton: {
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
     borderRadius: 8,
     marginTop: 16,
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: '#10b981',
   },
-  summaryTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    color: '#1f2937',
-  },
-  summaryContent: {
-    flexDirection: 'row',
-    gap: 24,
-  },
-  summaryItem: {
-    flex: 1,
-  },
-  summaryLabel: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginBottom: 4,
-  },
-  summaryValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#10b981',
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  resetButton: {
-    flex: 1,
-    backgroundColor: '#e5e7eb',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  resetButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1f2937',
-  },
-  saveButton: {
-    flex: 1,
-    backgroundColor: '#10b981',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  saveButtonText: {
-    fontSize: 14,
-    fontWeight: 'bold',
+  backButtonText: {
     color: 'white',
-  },
-  cameraContainer: {
-    flex: 1,
+    fontSize: 16,
+    fontWeight: '600',
   },
   camera: {
     flex: 1,
   },
-  cameraOverlay: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
-  cameraHeader: {
-    padding: 20,
-    alignItems: 'flex-end',
-  },
-  cameraCloseButton: {
-    width: 50,
-    height: 50,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scanArea: {
+  cameraContent: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  scanFrame: {
-    width: 250,
-    height: 150,
-    borderWidth: 3,
-    borderColor: '#10b981',
-    borderRadius: 12,
-    backgroundColor: 'transparent',
+  // Instructions
+  instructionContainer: {
+    alignItems: 'center',
+    gap: 16,
   },
-  scanText: {
-    marginTop: 20,
-    fontSize: 16,
+  viewfinderFrame: {
+    width: 128,
+    height: 128,
+    borderWidth: 4,
+    borderColor: 'rgba(255,255,255,0.5)',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  instructionTitle: {
     color: 'white',
+    fontSize: 20,
     fontWeight: '600',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  instructionSubtitle: {
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: 14,
+  },
+  // Scanning
+  scanningContainer: {
+    alignItems: 'center',
+    gap: 16,
+  },
+  scanningFrame: {
+    width: 128,
+    height: 128,
+    borderWidth: 4,
+    borderColor: '#3b82f6',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scanningTitle: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  scanningDots: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#3b82f6',
+  },
+  dot1: {
+    opacity: 1,
+  },
+  dot2: {
+    opacity: 0.7,
+  },
+  dot3: {
+    opacity: 0.4,
+  },
+  // Trigger Alert
+  triggerAlert: {
+    position: 'absolute',
+    top: 80,
+    left: 16,
+    right: 16,
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  triggerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+  },
+  triggerIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#ef4444',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  triggerHeaderText: {
+    flex: 1,
+  },
+  triggerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#dc2626',
+  },
+  triggerProduct: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  triggerDetails: {
+    backgroundColor: '#fef2f2',
+    borderWidth: 2,
+    borderColor: '#fecaca',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  triggerIngredient: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#991b1b',
+    marginBottom: 4,
+  },
+  triggerDate: {
+    fontSize: 14,
+    color: '#b91c1c',
+    marginBottom: 8,
+  },
+  triggerReaction: {
+    fontSize: 13,
+    color: '#dc2626',
+  },
+  avoidButton: {
+    backgroundColor: '#dc2626',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  avoidButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  alternativesButton: {
+    padding: 8,
+    alignItems: 'center',
+  },
+  alternativesButtonText: {
+    color: '#2563eb',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  // Close Button
+  closeButton: {
+    position: 'absolute',
+    top: 48,
+    right: 24,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Bottom Controls
+  bottomControls: {
+    backgroundColor: '#111827',
+    paddingVertical: 24,
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    alignItems: 'center',
+    gap: 20,
+  },
+  captureButton: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#10b981',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#10b981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  captureButtonInner: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 4,
+    borderColor: 'white',
+  },
+  methodButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  methodButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#374151',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderRadius: 8,
+  },
+  methodButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
