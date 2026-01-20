@@ -199,7 +199,7 @@ export default function HomeScreen({ navigation }: any) {
               </View>
               <View
                 style={[
-                  styles.scorebadge,
+                  styles.scoreBadge,
                   {
                     backgroundColor:
                       meal.score >= 10
