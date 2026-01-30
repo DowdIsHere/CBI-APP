@@ -6,7 +6,6 @@ import MealEntryScreen from '../screens/MealEntryScreen';
 import ProgressScreen from '../screens/ProgressScreen';
 import EducationScreen from '../screens/EducationScreen';
 import ProfileScreen from '../screens/ProfileScreen';
-import ParserProfileScreen from '../screens/ParserProfileScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -25,8 +24,6 @@ export default function AppNavigator() {
             iconName = focused ? 'trending-up' : 'trending-up-outline';
           } else if (route.name === 'Learn') {
             iconName = focused ? 'book' : 'book-outline';
-          } else if (route.name === 'Parser') {
-            iconName = focused ? 'grid' : 'grid-outline';
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
           } else {
@@ -65,11 +62,6 @@ export default function AppNavigator() {
         name="Learn"
         component={EducationScreen}
         options={{ title: 'Education' }}
-      />
-      <Tab.Screen
-        name="Parser"
-        component={ParserProfileScreen}
-        options={{ title: 'Parser Profile' }}
       />
       <Tab.Screen
         name="Profile"
