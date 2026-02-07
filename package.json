@@ -3,10 +3,13 @@
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
-    "start": "expo start",
+    "start": "npx serve dist -l 8081",
+    "dev": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "build": "npx expo export --platform web",
+    "postinstall": "npx expo export --platform web || true"
   },
   "dependencies": {
     "@expo/metro-runtime": "^6.1.2",
@@ -24,7 +27,8 @@
     "react-native": "0.81.4",
     "react-native-safe-area-context": "^5.6.1",
     "react-native-screens": "^4.17.1",
-    "react-native-web": "^0.19.13"
+    "react-native-web": "^0.19.13",
+    "serve": "^14.2.4"
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
