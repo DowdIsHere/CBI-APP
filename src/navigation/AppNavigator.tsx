@@ -49,14 +49,14 @@ export default function AppNavigator() {
         options={{ title: 'Dashboard' }}
       />
       <Tab.Screen
-        name="LogMeal"
-        component={MealEntryScreen}
-        options={{ title: 'Log Meal' }}
-      />
-      <Tab.Screen
         name="Progress"
         component={ProgressScreen}
         options={{ title: 'Progress' }}
+      />
+      <Tab.Screen
+        name="LogMeal"
+        component={MealEntryScreen}
+        options={{ title: 'Log Meal' }}
       />
       <Tab.Screen
         name="Learn"
