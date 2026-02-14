@@ -27,10 +27,10 @@ export default function HomeScreen({ navigation }: any) {
         <View style={styles.header}>
           <View style={styles.headerContent}>
             <View style={styles.logoContainer}>
-              <Text style={styles.logoText}>CBI</Text>
+              <Text style={styles.logoText}>JDM</Text>
             </View>
             <View style={styles.headerTextContainer}>
-              <Text style={styles.headerTitle}>Cellular Biology Intelligence</Text>
+              <Text style={styles.headerTitle}>JD Mercer Protocol</Text>
               <Text style={styles.headerSubtitle}>Enteric Nervous System Support</Text>
             </View>
           </View>

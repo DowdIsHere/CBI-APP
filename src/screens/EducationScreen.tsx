@@ -166,9 +166,9 @@ export default function EducationScreen() {
           <Text style={styles.sectionTitle}>Key Concepts</Text>
 
           <View style={styles.conceptCard}>
-            <Text style={styles.conceptTitle}>What is CBI?</Text>
+            <Text style={styles.conceptTitle}>What is JD Mercer Protocol?</Text>
             <Text style={styles.conceptText}>
-              Cognition Blocks of Intelligence - Understanding how food either
+              A science-based approach to understanding how food either
               enhances or impairs your body's natural intelligence systems.
             </Text>
           </View>

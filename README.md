@@ -1,5 +1,5 @@
-# CBI - Cellular Biology Intelligence
-## The Dowd Protocol - Enteric Nervous System Support
+# JD Mercer Protocol
+## Enteric Nervous System Support
 
 A comprehensive nutrition tracking mobile app built with React Native and Expo, designed to support the Enteric Nervous System (ENS) through evidence-based nutritional guidance.
 
@@ -143,7 +143,7 @@ CBI-App/
 ### Education Screen
 - Learning modules
 - Quick read articles
-- Key concepts about the Dowd Protocol
+- Key concepts about the JD Mercer Protocol
 - FAQ section
 
 ### Profile Screen
@@ -198,7 +198,7 @@ The app uses bottom tab navigation with 5 main screens:
 ## Styling
 
 - Uses React Native StyleSheet for optimal performance
-- Consistent color scheme based on the CBI branding
+- Consistent color scheme based on JD Mercer Protocol branding
 - Responsive layouts that work on all device sizes
 - Custom components styled to match the web interface
 
@@ -211,9 +211,9 @@ The app uses bottom tab navigation with 5 main screens:
 - Integration with health tracking devices
 - Meal planning and recipe suggestions
 
-## About the Dowd Protocol
+## About JD Mercer Protocol
 
-The CBI app is built around the Dowd Protocol, which focuses on:
+The JD Mercer Protocol app focuses on:
 - **Gut Intelligence** (Enteric Nervous System)
 - **Brain Intelligence** (Central Nervous System)
 - **Cellular Intelligence** (Mitochondrial Function)
@@ -222,14 +222,14 @@ Every food is scored based on its impact on these three interconnected systems.
 
 ## License
 
-Copyright © 2025 CBI - The Dowd Protocol
+Copyright © 2025 JD Mercer Protocol
 
 ## Support
 
 For issues or questions:
 1. Check the Education screen in the app
 2. Visit the Help & Support section in Profile
-3. Contact: support@cbi-app.com
+3. Contact: support@jdmercerprotocol.com
 
 ## Version
 

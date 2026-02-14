@@ -134,7 +134,7 @@ export default function YouScreen({ navigation }: any) {
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>CBI - The Dowd Protocol</Text>
+          <Text style={styles.footerText}>JD Mercer Protocol</Text>
           <Text style={styles.footerVersion}>Version 1.0.0</Text>
         </View>
       </ScrollView>
@@ -298,7 +298,7 @@ export default function YouScreen({ navigation }: any) {
         </TouchableOpacity>
         <TouchableOpacity style={styles.settingsMenuItem}>
           <Ionicons name="information-circle" size={20} color="#6b7280" />
-          <Text style={styles.settingsMenuText}>About CBI</Text>
+          <Text style={styles.settingsMenuText}>About JD Mercer Protocol</Text>
           <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
         </TouchableOpacity>
         <TouchableOpacity style={[styles.settingsMenuItem, styles.logoutItem]}>

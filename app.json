@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "CBI - Cellular Biology Intelligence",
-    "slug": "cbi-app",
+    "name": "JD Mercer Protocol",
+    "slug": "jd-mercer-protocol",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.cbi.dowdprotocol",
+      "bundleIdentifier": "com.jdmercer.protocol",
       "jsEngine": "jsc",
       "infoPlist": {
         "NSCameraUsageDescription": "This app needs access to your camera to take photos of your meals for analysis.",
@@ -28,7 +28,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1e3a8a"
       },
-      "package": "com.cbi.dowdprotocol",
+      "package": "com.jdmercer.protocol",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
@@ -45,13 +45,13 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow CBI to access your camera to take photos of your meals."
+          "cameraPermission": "Allow JD Mercer Protocol to access your camera to take photos of your meals."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow CBI to access your photos to select meal images for analysis."
+          "photosPermission": "Allow JD Mercer Protocol to access your photos to select meal images for analysis."
         }
       ]
     ],
