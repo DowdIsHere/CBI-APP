@@ -11,59 +11,20 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Panel from '../components/panels/Panel';
+import { useAppData } from '../data/AppContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function YouScreen({ navigation }: any) {
   const [triggersOpen, setTriggersOpen] = useState(false);
   const [progressOpen, setProgressOpen] = useState(false);
-  const [educationOpen, setEducationOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [remindersEnabled, setRemindersEnabled] = useState(true);
 
-  const userProfile = {
-    name: 'John Doe',
-    email: 'john@example.com',
-    condition: 'Multiple Sclerosis',
-    joinDate: 'Jan 2025',
-    totalMeals: 45,
-    streak: 7,
-  };
+  const { data, getWeeklyStats, removeTrigger, updateSettings } = useAppData();
+  const { user, stats, triggers, settings } = data;
 
-  const triggers = [
-    { name: 'Nightshades', category: 'Food Group', severity: 'high' },
-    { name: 'Dairy', category: 'Food Group', severity: 'medium' },
-    { name: 'Gluten', category: 'Food Group', severity: 'medium' },
-    { name: 'Shellfish', category: 'Allergy', severity: 'high' },
-    { name: 'Tree Nuts', category: 'Allergy', severity: 'high' },
-  ];
-
-  const weeklyData = [
-    { day: 'Mon', score: 12 },
-    { day: 'Tue', score: 9 },
-    { day: 'Wed', score: 15 },
-    { day: 'Thu', score: 11 },
-    { day: 'Fri', score: 13 },
-    { day: 'Sat', score: 10 },
-    { day: 'Sun', score: 14 },
-  ];
-
-  const stats = {
-    currentStreak: 7,
-    totalMeals: 45,
-    avgScore: 11,
-    bestDay: 18,
-  };
-
-  const modules = [
-    { id: 1, title: 'Foundation', lessons: 4, completed: true },
-    { id: 2, title: 'Mechanisms', lessons: 5, completed: false },
-    { id: 3, title: 'Optimization', lessons: 6, completed: false },
-    { id: 4, title: 'Disease-Specific', lessons: 4, completed: false },
-  ];
-
-  const maxScore = Math.max(...weeklyData.map((d) => d.score));
+  const weeklyData = getWeeklyStats();
+  const maxScore = Math.max(...weeklyData.map((d) => d.score), 1);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -71,23 +32,23 @@ export default function YouScreen({ navigation }: any) {
         {/* Profile Header */}
         <View style={styles.profileHeader}>
           <View style={styles.avatarContainer}>
-            <Text style={styles.avatarText}>{userProfile.name.charAt(0)}</Text>
+            <Text style={styles.avatarText}>{user.name.charAt(0)}</Text>
           </View>
-          <Text style={styles.userName}>{userProfile.name}</Text>
-          <Text style={styles.userEmail}>{userProfile.email}</Text>
+          <Text style={styles.userName}>{user.name}</Text>
+          <Text style={styles.userEmail}>{user.email}</Text>
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{userProfile.totalMeals}</Text>
+              <Text style={styles.statValue}>{stats.totalMeals}</Text>
               <Text style={styles.statLabel}>Meals</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{userProfile.streak}</Text>
+              <Text style={styles.statValue}>{stats.streak}</Text>
               <Text style={styles.statLabel}>Day Streak</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{userProfile.joinDate}</Text>
+              <Text style={styles.statValue}>{user.joinDate}</Text>
               <Text style={styles.statLabel}>Member Since</Text>
             </View>
           </View>
@@ -233,7 +194,7 @@ export default function YouScreen({ navigation }: any) {
         <View style={styles.progressStatsGrid}>
           <View style={styles.progressStat}>
             <Ionicons name="flame" size={24} color="#f59e0b" />
-            <Text style={styles.progressStatValue}>{stats.currentStreak}</Text>
+            <Text style={styles.progressStatValue}>{stats.streak}</Text>
             <Text style={styles.progressStatLabel}>Day Streak</Text>
           </View>
           <View style={styles.progressStat}>
@@ -243,7 +204,7 @@ export default function YouScreen({ navigation }: any) {
           </View>
           <View style={styles.progressStat}>
             <Ionicons name="trending-up" size={24} color="#10b981" />
-            <Text style={styles.progressStatValue}>+{stats.avgScore}</Text>
+            <Text style={styles.progressStatValue}>+{stats.weekAverage}</Text>
             <Text style={styles.progressStatLabel}>Avg Score</Text>
           </View>
           <View style={styles.progressStat}>
@@ -293,7 +254,7 @@ export default function YouScreen({ navigation }: any) {
           <Ionicons name="medical" size={22} color="#ef4444" />
           <View style={styles.settingsCardContent}>
             <Text style={styles.settingsCardLabel}>Primary Condition</Text>
-            <Text style={styles.settingsCardValue}>{userProfile.condition}</Text>
+            <Text style={styles.settingsCardValue}>{user.condition}</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
         </TouchableOpacity>
@@ -307,10 +268,10 @@ export default function YouScreen({ navigation }: any) {
               <Text style={styles.settingToggleLabel}>Push Notifications</Text>
             </View>
             <Switch
-              value={notificationsEnabled}
-              onValueChange={setNotificationsEnabled}
+              value={settings.notificationsEnabled}
+              onValueChange={(value) => updateSettings({ notificationsEnabled: value })}
               trackColor={{ false: '#d1d5db', true: '#93c5fd' }}
-              thumbColor={notificationsEnabled ? '#3b82f6' : '#f3f4f6'}
+              thumbColor={settings.notificationsEnabled ? '#3b82f6' : '#f3f4f6'}
             />
           </View>
           <View style={styles.settingsDivider} />
@@ -320,10 +281,10 @@ export default function YouScreen({ navigation }: any) {
               <Text style={styles.settingToggleLabel}>Meal Reminders</Text>
             </View>
             <Switch
-              value={remindersEnabled}
-              onValueChange={setRemindersEnabled}
+              value={settings.remindersEnabled}
+              onValueChange={(value) => updateSettings({ remindersEnabled: value })}
               trackColor={{ false: '#d1d5db', true: '#c4b5fd' }}
-              thumbColor={remindersEnabled ? '#8b5cf6' : '#f3f4f6'}
+              thumbColor={settings.remindersEnabled ? '#8b5cf6' : '#f3f4f6'}
             />
           </View>
         </View>

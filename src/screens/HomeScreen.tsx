@@ -9,60 +9,16 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Panel from '../components/panels/Panel';
+import { useAppData } from '../data/AppContext';
 
 export default function HomeScreen({ navigation }: any) {
   const [scoreDetailOpen, setScoreDetailOpen] = useState(false);
   const [insightsOpen, setInsightsOpen] = useState(false);
   const [achievementsOpen, setAchievementsOpen] = useState(false);
 
-  const userStats = {
-    todayScore: 14,
-    weekAverage: 11,
-    streak: 7,
-    energyLevel: 8,
-    weightChange: -2.5,
-  };
-
-  const todaysMeals = [
-    { name: 'Breakfast', time: '8:30 AM', score: 8, items: ['Eggs', 'Avocado', 'Spinach'] },
-    { name: 'Lunch', time: '12:45 PM', score: 12, items: ['Wild Salmon', 'Broccoli', 'Olive Oil'] },
-    { name: 'Snack', time: '3:15 PM', score: 4, items: ['Blueberries', 'Walnuts'] },
-  ];
-
-  const insights = [
-    {
-      type: 'success',
-      message: 'Your energy levels are up 60% this week!',
-      icon: 'flash',
-      color: '#10b981',
-    },
-    {
-      type: 'tip',
-      message: 'Add more sulforaphane - only 1 cruciferous serving yesterday',
-      icon: 'bulb',
-      color: '#3b82f6',
-    },
-    {
-      type: 'warning',
-      message: 'Detected nightshades in 2 meals - may trigger symptoms',
-      icon: 'warning',
-      color: '#f59e0b',
-    },
-  ];
-
-  const achievements = [
-    { id: 1, name: '7-Day Streak', icon: 'flame', unlocked: true, color: '#f59e0b' },
-    { id: 2, name: 'ENS Optimizer', icon: 'fitness', unlocked: true, color: '#8b5cf6' },
-    { id: 3, name: 'Omega-3 Master', icon: 'fish', unlocked: true, color: '#3b82f6' },
-    { id: 4, name: 'Sugar-Free Week', icon: 'ban', unlocked: false, color: '#6b7280' },
-  ];
-
-  const currentLesson = {
-    week: 'Week 1: Foundation',
-    title: 'Meet Your Enteric Nervous System',
-    progress: 75,
-    timeEstimate: '5 min',
-  };
+  const { data, getTodaysMeals } = useAppData();
+  const { stats, insights, achievements, currentLesson } = data;
+  const todaysMeals = getTodaysMeals();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -90,12 +46,12 @@ export default function HomeScreen({ navigation }: any) {
             <View style={styles.scoreCardContent}>
               <View>
                 <Text style={styles.scoreLabel}>Today's Score</Text>
-                <Text style={styles.scoreValue}>+{userStats.todayScore}</Text>
+                <Text style={styles.scoreValue}>+{stats.todayScore}</Text>
               </View>
               <View style={styles.scoreRight}>
                 <View style={styles.streakBadge}>
                   <Ionicons name="flame" size={16} color="#f59e0b" />
-                  <Text style={styles.streakText}>{userStats.streak} days</Text>
+                  <Text style={styles.streakText}>{stats.streak} days</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.7)" />
               </View>
@@ -144,7 +100,9 @@ export default function HomeScreen({ navigation }: any) {
                 </View>
                 <View style={styles.teaserText}>
                   <Text style={styles.teaserTitle}>Insights</Text>
-                  <Text style={styles.teaserSubtitle}>{insights.length} tips for you today</Text>
+                  <Text style={styles.teaserSubtitle}>
+                    {insights.length > 0 ? `${insights.length} tips for you today` : 'No insights yet'}
+                  </Text>
                 </View>
               </View>
               <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
@@ -182,52 +140,61 @@ export default function HomeScreen({ navigation }: any) {
         {/* Stats Grid */}
         <View style={styles.panelStatsGrid}>
           <View style={styles.panelStat}>
-            <Text style={styles.panelStatValue}>+{userStats.todayScore}</Text>
+            <Text style={styles.panelStatValue}>+{stats.todayScore}</Text>
             <Text style={styles.panelStatLabel}>Today</Text>
           </View>
           <View style={styles.panelStat}>
-            <Text style={styles.panelStatValue}>+{userStats.weekAverage}</Text>
+            <Text style={styles.panelStatValue}>+{stats.weekAverage}</Text>
             <Text style={styles.panelStatLabel}>Week Avg</Text>
           </View>
           <View style={styles.panelStat}>
-            <Text style={styles.panelStatValue}>{userStats.streak}</Text>
+            <Text style={styles.panelStatValue}>{stats.streak}</Text>
             <Text style={styles.panelStatLabel}>Streak</Text>
           </View>
           <View style={styles.panelStat}>
-            <Text style={styles.panelStatValue}>{userStats.energyLevel}/10</Text>
+            <Text style={styles.panelStatValue}>{stats.energyLevel}/10</Text>
             <Text style={styles.panelStatLabel}>Energy</Text>
           </View>
         </View>
 
         {/* Today's Meals */}
         <Text style={styles.panelSectionTitle}>Today's Meals</Text>
-        {todaysMeals.map((meal, idx) => (
-          <View key={idx} style={styles.mealItem}>
-            <View style={styles.mealInfo}>
-              <Text style={styles.mealName}>{meal.name}</Text>
-              <Text style={styles.mealTime}>{meal.time}</Text>
-              <Text style={styles.mealItems}>{meal.items.join(', ')}</Text>
-            </View>
-            <View style={[
-              styles.mealScore,
-              { backgroundColor: meal.score >= 10 ? '#d1fae5' : meal.score >= 5 ? '#dbeafe' : '#fef3c7' }
-            ]}>
-              <Text style={[
-                styles.mealScoreText,
-                { color: meal.score >= 10 ? '#047857' : meal.score >= 5 ? '#1e40af' : '#92400e' }
-              ]}>
-                +{meal.score}
-              </Text>
-            </View>
+        {todaysMeals.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="restaurant-outline" size={32} color="#9ca3af" />
+            <Text style={styles.emptyStateText}>No meals logged today</Text>
           </View>
-        ))}
+        ) : (
+          todaysMeals.map((meal) => (
+            <View key={meal.id} style={styles.mealItem}>
+              <View style={styles.mealInfo}>
+                <Text style={styles.mealName}>{meal.name}</Text>
+                <Text style={styles.mealTime}>{meal.time}</Text>
+                <Text style={styles.mealItems}>
+                  {meal.items.map(i => i.name).join(', ')}
+                </Text>
+              </View>
+              <View style={[
+                styles.mealScore,
+                { backgroundColor: meal.totalScore >= 10 ? '#d1fae5' : meal.totalScore >= 5 ? '#dbeafe' : '#fef3c7' }
+              ]}>
+                <Text style={[
+                  styles.mealScoreText,
+                  { color: meal.totalScore >= 10 ? '#047857' : meal.totalScore >= 5 ? '#1e40af' : '#92400e' }
+                ]}>
+                  +{meal.totalScore}
+                </Text>
+              </View>
+            </View>
+          ))
+        )}
 
         {/* Weight Change */}
         <View style={styles.weightCard}>
           <Ionicons name="scale" size={24} color="#8b5cf6" />
           <View style={styles.weightInfo}>
             <Text style={styles.weightLabel}>Weight Change</Text>
-            <Text style={styles.weightValue}>{userStats.weightChange} lbs</Text>
+            <Text style={styles.weightValue}>{stats.weightChange} lbs</Text>
           </View>
           <View style={styles.onTrackBadge}>
             <Ionicons name="checkmark" size={14} color="#047857" />
@@ -242,12 +209,19 @@ export default function HomeScreen({ navigation }: any) {
         onClose={() => setInsightsOpen(false)}
         title="Today's Insights"
       >
-        {insights.map((insight, idx) => (
-          <View key={idx} style={[styles.insightCard, { borderLeftColor: insight.color }]}>
-            <Ionicons name={insight.icon as any} size={24} color={insight.color} />
-            <Text style={styles.insightText}>{insight.message}</Text>
+        {insights.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="bulb-outline" size={32} color="#9ca3af" />
+            <Text style={styles.emptyStateText}>Log more meals to get insights</Text>
           </View>
-        ))}
+        ) : (
+          insights.map((insight) => (
+            <View key={insight.id} style={[styles.insightCard, { borderLeftColor: insight.color }]}>
+              <Ionicons name={insight.icon as any} size={24} color={insight.color} />
+              <Text style={styles.insightText}>{insight.message}</Text>
+            </View>
+          ))
+        )}
       </Panel>
 
       {/* Achievements Panel */}
@@ -338,7 +312,6 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 16,
   },
-  // Score Card
   scoreCard: {
     backgroundColor: '#10b981',
     borderRadius: 16,
@@ -388,7 +361,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
     textAlign: 'center',
   },
-  // Learning Card
   learningCard: {
     backgroundColor: '#8b5cf6',
     borderRadius: 16,
@@ -456,7 +428,6 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.9)',
     fontWeight: '500',
   },
-  // Teasers
   teasersSection: {
     gap: 12,
   },
@@ -497,7 +468,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6b7280',
   },
-  // Panel Styles
   panelStatsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -527,6 +497,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1f2937',
     marginBottom: 12,
+  },
+  emptyState: {
+    alignItems: 'center',
+    padding: 24,
+    gap: 8,
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: '#9ca3af',
   },
   mealItem: {
     flexDirection: 'row',
@@ -598,7 +577,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#047857',
   },
-  // Insights Panel
   insightCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -615,7 +593,6 @@ const styles = StyleSheet.create({
     color: '#1f2937',
     lineHeight: 22,
   },
-  // Achievements Panel
   achievementsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',

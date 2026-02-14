@@ -14,16 +14,20 @@ import { Ionicons } from '@expo/vector-icons';
 import { Camera, CameraView } from 'expo-camera';
 import { BarcodeScanningResult } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
+import { useAppData } from '../data/AppContext';
+import { FoodItem } from '../data/types';
 
 type InputMethod = 'camera' | 'barcode' | 'type' | 'batch' | null;
 
 export default function LogScreen() {
+  const { addMeal } = useAppData();
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
-  const [detectedFoods, setDetectedFoods] = useState<any[]>([]);
+  const [detectedFoods, setDetectedFoods] = useState<FoodItem[]>([]);
   const [inputMethod, setInputMethod] = useState<InputMethod>('camera');
   const [manualInput, setManualInput] = useState('');
   const [barcodeScanning, setBarcodeScanning] = useState(false);
+  const [mealName, setMealName] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -66,26 +70,28 @@ export default function LogScreen() {
     simulateBatchAnalysis();
   };
 
+  const generateId = () => Date.now().toString() + Math.random().toString(36).substr(2, 9);
+
   const simulatePhotoAnalysis = () => {
     setAnalyzing(true);
     setTimeout(() => {
       setDetectedFoods([
         {
-          id: Date.now(),
+          id: generateId(),
           name: 'Grilled Salmon',
           portionSize: '6 oz',
           score: 3,
           warnings: [],
         },
         {
-          id: Date.now() + 1,
+          id: generateId(),
           name: 'Steamed Broccoli',
           portionSize: '1.5 cups',
           score: 2,
           warnings: [],
         },
         {
-          id: Date.now() + 2,
+          id: generateId(),
           name: 'Olive Oil',
           portionSize: '1 tbsp',
           score: 1,
@@ -101,14 +107,25 @@ export default function LogScreen() {
     setTimeout(() => {
       setDetectedFoods([
         {
-          id: Date.now(),
-          name: 'Meal Prep Container 1',
-          items: [
-            { name: 'Grilled Chicken', portion: '6 oz', score: 1 },
-            { name: 'Sweet Potato', portion: '1 cup', score: 1 },
-            { name: 'Asparagus', portion: '1 cup', score: 2 },
-          ],
-          totalScore: 4,
+          id: generateId(),
+          name: 'Grilled Chicken',
+          portionSize: '6 oz',
+          score: 1,
+          warnings: [],
+        },
+        {
+          id: generateId(),
+          name: 'Sweet Potato',
+          portionSize: '1 cup',
+          score: 1,
+          warnings: [],
+        },
+        {
+          id: generateId(),
+          name: 'Asparagus',
+          portionSize: '1 cup',
+          score: 2,
+          warnings: [],
         },
       ]);
       setAnalyzing(false);
@@ -121,7 +138,7 @@ export default function LogScreen() {
     setTimeout(() => {
       setDetectedFoods([
         {
-          id: Date.now(),
+          id: generateId(),
           name: 'Wild Planet Wild Sardines',
           brand: 'Wild Planet',
           upc: barcode,
@@ -139,8 +156,8 @@ export default function LogScreen() {
 
     setAnalyzing(true);
     setTimeout(() => {
-      const items = manualInput.split(',').map((item, idx) => ({
-        id: Date.now() + idx,
+      const items: FoodItem[] = manualInput.split(',').map((item) => ({
+        id: generateId(),
         name: item.trim(),
         portionSize: '1 serving',
         score: Math.floor(Math.random() * 3) + 1,
@@ -154,10 +171,25 @@ export default function LogScreen() {
   };
 
   const saveMeal = () => {
-    const totalScore = detectedFoods.reduce((sum, food) => {
-      if (food.items) return sum + food.totalScore;
-      return sum + food.score;
-    }, 0);
+    const totalScore = detectedFoods.reduce((sum, food) => sum + food.score, 0);
+
+    // Determine meal name based on time of day
+    const hour = new Date().getHours();
+    let defaultMealName = 'Snack';
+    if (hour >= 5 && hour < 11) defaultMealName = 'Breakfast';
+    else if (hour >= 11 && hour < 15) defaultMealName = 'Lunch';
+    else if (hour >= 17 && hour < 21) defaultMealName = 'Dinner';
+
+    const now = new Date();
+    const timeString = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+    addMeal({
+      name: mealName || defaultMealName,
+      time: timeString,
+      date: now.toISOString().split('T')[0],
+      items: detectedFoods,
+      totalScore,
+    });
 
     Alert.alert(
       'Meal Saved!',
@@ -168,13 +200,14 @@ export default function LogScreen() {
           onPress: () => {
             setDetectedFoods([]);
             setInputMethod('camera');
+            setMealName('');
           },
         },
       ]
     );
   };
 
-  const removeFood = (foodId: number) => {
+  const removeFood = (foodId: string) => {
     setDetectedFoods(detectedFoods.filter((f) => f.id !== foodId));
   };
 
@@ -183,6 +216,7 @@ export default function LogScreen() {
     setInputMethod('camera');
     setBarcodeScanning(false);
     setManualInput('');
+    setMealName('');
   };
 
   // Barcode Scanner View
@@ -285,7 +319,7 @@ export default function LogScreen() {
   // Results View
   if (detectedFoods.length > 0) {
     const totalScore = detectedFoods.reduce(
-      (sum, f) => sum + (f.totalScore || f.score),
+      (sum, f) => sum + f.score,
       0
     );
 
@@ -316,17 +350,17 @@ export default function LogScreen() {
                     style={[
                       styles.foodScoreBadge,
                       {
-                        backgroundColor: (food.score || food.totalScore) >= 2 ? '#d1fae5' : '#dbeafe',
+                        backgroundColor: food.score >= 2 ? '#d1fae5' : '#dbeafe',
                       },
                     ]}
                   >
                     <Text
                       style={[
                         styles.foodScoreText,
-                        { color: (food.score || food.totalScore) >= 2 ? '#047857' : '#1e40af' },
+                        { color: food.score >= 2 ? '#047857' : '#1e40af' },
                       ]}
                     >
-                      +{food.score || food.totalScore}
+                      +{food.score}
                     </Text>
                   </View>
                   <TouchableOpacity
@@ -338,16 +372,6 @@ export default function LogScreen() {
                 </View>
               </View>
 
-              {food.items && (
-                <View style={styles.batchItems}>
-                  {food.items.map((item: any, idx: number) => (
-                    <View key={idx} style={styles.batchItem}>
-                      <Text style={styles.batchItemName}>{item.name}</Text>
-                      <Text style={styles.batchItemPortion}>{item.portion}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
             </View>
           ))}
 
