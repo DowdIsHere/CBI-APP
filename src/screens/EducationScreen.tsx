@@ -8,76 +8,31 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAppData } from '../data/AppContext';
+import { articles, getLessonsByModule } from '../data/learningContent';
 
-export default function EducationScreen() {
-  const currentWeek = {
-    title: 'Week 1: Foundation',
-    lesson: 'Meet Your Enteric Nervous System',
-    progress: 75,
+export default function EducationScreen({ navigation }: any) {
+  const { data } = useAppData();
+  const { learningModules, currentLesson } = data;
+
+  // Get first incomplete lesson for continue button
+  const getNextLesson = () => {
+    for (const module of learningModules) {
+      const moduleLessons = getLessonsByModule(module.id);
+      const incompleteLesson = moduleLessons.find(l => !l.completed);
+      if (incompleteLesson) {
+        return incompleteLesson;
+      }
+    }
+    return null;
   };
 
-  const modules = [
-    {
-      id: 1,
-      title: 'Foundation',
-      lessons: 4,
-      duration: '20 min',
-      icon: 'school',
-      color: '#3b82f6',
-      completed: true,
-    },
-    {
-      id: 2,
-      title: 'Mechanisms',
-      lessons: 5,
-      duration: '30 min',
-      icon: 'cog',
-      color: '#8b5cf6',
-      completed: false,
-    },
-    {
-      id: 3,
-      title: 'Optimization',
-      lessons: 6,
-      duration: '35 min',
-      icon: 'fitness',
-      color: '#10b981',
-      completed: false,
-    },
-    {
-      id: 4,
-      title: 'Disease-Specific',
-      lessons: 4,
-      duration: '25 min',
-      icon: 'medical',
-      color: '#ef4444',
-      completed: false,
-    },
-  ];
-
-  const articles = [
-    {
-      id: 1,
-      title: 'The Gut-Brain Connection',
-      category: 'Science',
-      readTime: '5 min',
-      icon: 'book',
-    },
-    {
-      id: 2,
-      title: 'Omega-3s and Brain Health',
-      category: 'Nutrition',
-      readTime: '7 min',
-      icon: 'nutrition',
-    },
-    {
-      id: 3,
-      title: 'Sulforaphane Benefits',
-      category: 'Research',
-      readTime: '6 min',
-      icon: 'flask',
-    },
-  ];
+  const handleContinueLearning = () => {
+    const nextLesson = getNextLesson();
+    if (nextLesson) {
+      navigation.navigate('Lesson', { lessonId: nextLesson.id });
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -86,32 +41,43 @@ export default function EducationScreen() {
         <View style={styles.progressSection}>
           <View style={styles.progressHeader}>
             <View>
-              <Text style={styles.progressTitle}>{currentWeek.title}</Text>
+              <Text style={styles.progressTitle}>{currentLesson.week}</Text>
               <Text style={styles.progressSubtitle}>
-                Next: {currentWeek.lesson}
+                Next: {currentLesson.title}
               </Text>
             </View>
-            <Text style={styles.progressPercent}>{currentWeek.progress}%</Text>
+            <Text style={styles.progressPercent}>{currentLesson.progress}%</Text>
           </View>
           <View style={styles.progressBar}>
             <View
               style={[
                 styles.progressFill,
-                { width: `${currentWeek.progress}%` },
+                { width: `${currentLesson.progress}%` },
               ]}
             />
           </View>
-          <TouchableOpacity style={styles.continueButton}>
+          <TouchableOpacity
+            style={styles.continueButton}
+            onPress={handleContinueLearning}
+          >
             <Text style={styles.continueButtonText}>Continue Learning</Text>
-            <Ionicons name="arrow-forward" size={20} color="white" />
+            <Ionicons name="arrow-forward" size={20} color="#3b82f6" />
           </TouchableOpacity>
         </View>
 
         {/* Learning Modules */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Learning Modules</Text>
-          {modules.map((module) => (
-            <TouchableOpacity key={module.id} style={styles.moduleCard}>
+          {learningModules.map((module) => (
+            <TouchableOpacity
+              key={module.id}
+              style={styles.moduleCard}
+              onPress={() => navigation.navigate('Module', {
+                moduleId: module.id,
+                moduleTitle: module.title,
+                moduleColor: module.color,
+              })}
+            >
               <View
                 style={[styles.moduleIcon, { backgroundColor: module.color }]}
               >
@@ -120,10 +86,10 @@ export default function EducationScreen() {
               <View style={styles.moduleInfo}>
                 <Text style={styles.moduleName}>{module.title}</Text>
                 <Text style={styles.moduleDetails}>
-                  {module.lessons} lessons • {module.duration}
+                  {module.completedLessons}/{module.lessons} lessons • {module.duration}
                 </Text>
               </View>
-              {module.completed ? (
+              {module.completedLessons === module.lessons ? (
                 <Ionicons name="checkmark-circle" size={24} color="#10b981" />
               ) : (
                 <Ionicons name="chevron-forward" size={24} color="#9ca3af" />
@@ -136,7 +102,14 @@ export default function EducationScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick Reads</Text>
           {articles.map((article) => (
-            <TouchableOpacity key={article.id} style={styles.articleCard}>
+            <TouchableOpacity
+              key={article.id}
+              style={styles.articleCard}
+              onPress={() => navigation.navigate('Article', {
+                articleId: article.id,
+                articleTitle: article.title,
+              })}
+            >
               <View style={styles.articleIcon}>
                 <Ionicons
                   name={article.icon as any}

@@ -87,6 +87,28 @@ export interface LearningModule {
   color: string;
 }
 
+// Lesson
+export interface Lesson {
+  id: string;
+  moduleId: string;
+  title: string;
+  duration: string;
+  content: string[];
+  keyPoints: string[];
+  completed: boolean;
+}
+
+// Article
+export interface Article {
+  id: string;
+  title: string;
+  category: string;
+  readTime: string;
+  icon: string;
+  content: string[];
+  keyTakeaways: string[];
+}
+
 // Current Lesson
 export interface CurrentLesson {
   moduleId: string;

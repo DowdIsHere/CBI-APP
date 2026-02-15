@@ -6,6 +6,9 @@ import HomeScreen from '../screens/HomeScreen';
 import LogScreen from '../screens/LogScreen';
 import YouScreen from '../screens/YouScreen';
 import EducationScreen from '../screens/EducationScreen';
+import ModuleScreen from '../screens/ModuleScreen';
+import LessonScreen from '../screens/LessonScreen';
+import ArticleScreen from '../screens/ArticleScreen';
 import { createStackNavigator } from '@react-navigation/stack';
 
 const Tab = createBottomTabNavigator();
@@ -92,9 +95,19 @@ function MainTabs() {
   );
 }
 
+const headerOptions = {
+  headerStyle: {
+    backgroundColor: '#1e3a8a',
+  },
+  headerTintColor: '#fff',
+  headerTitleStyle: {
+    fontWeight: 'bold' as const,
+  },
+};
+
 export default function AppNavigator() {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator screenOptions={headerOptions}>
       <Stack.Screen
         name="MainTabs"
         component={MainTabs}
@@ -103,16 +116,26 @@ export default function AppNavigator() {
       <Stack.Screen
         name="Learn"
         component={EducationScreen}
-        options={{
-          headerStyle: {
-            backgroundColor: '#1e3a8a',
-          },
-          headerTintColor: '#fff',
-          headerTitleStyle: {
-            fontWeight: 'bold',
-          },
-          title: 'Education',
-        }}
+        options={{ title: 'Education' }}
+      />
+      <Stack.Screen
+        name="Module"
+        component={ModuleScreen}
+        options={({ route }: any) => ({
+          title: route.params?.moduleTitle || 'Module',
+        })}
+      />
+      <Stack.Screen
+        name="Lesson"
+        component={LessonScreen}
+        options={{ title: 'Lesson' }}
+      />
+      <Stack.Screen
+        name="Article"
+        component={ArticleScreen}
+        options={({ route }: any) => ({
+          title: route.params?.articleTitle || 'Article',
+        })}
       />
     </Stack.Navigator>
   );
