@@ -16,6 +16,7 @@ import { BarcodeScanningResult } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { useAppData } from '../data/AppContext';
 import { FoodItem } from '../data/types';
+import { analyzePhoto, analyzeText, lookupBarcode } from '../services/foodAnalysis';
 
 type InputMethod = 'camera' | 'barcode' | 'type' | 'batch' | null;
 
@@ -42,11 +43,23 @@ export default function LogScreen() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 1,
+      quality: 0.8,
     });
 
-    if (!result.canceled) {
-      simulatePhotoAnalysis();
+    if (!result.canceled && result.assets[0]) {
+      setAnalyzing(true);
+      const analysis = await analyzePhoto(result.assets[0].uri);
+      setAnalyzing(false);
+
+      if (analysis.success && analysis.foods.length > 0) {
+        setDetectedFoods(analysis.foods);
+      } else {
+        Alert.alert(
+          'Analysis Failed',
+          analysis.error || 'Could not identify foods in the image. Try again or enter manually.',
+          [{ text: 'OK' }]
+        );
+      }
     }
   };
 
@@ -55,119 +68,83 @@ export default function LogScreen() {
     setInputMethod('barcode');
   };
 
-  const handleBarCodeScanned = ({ type, data }: BarcodeScanningResult) => {
+  const handleBarCodeScanned = async ({ type, data }: BarcodeScanningResult) => {
     setBarcodeScanning(false);
     setInputMethod('camera');
-    simulateBarcodeScanning(data);
+    setAnalyzing(true);
+
+    const result = await lookupBarcode(data);
+    setAnalyzing(false);
+
+    if (result.success && result.foods.length > 0) {
+      setDetectedFoods(result.foods);
+    } else {
+      Alert.alert(
+        'Product Not Found',
+        'This barcode was not found in the database. Try taking a photo or entering manually.',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   const handleTypePress = () => {
     setInputMethod('type');
   };
 
-  const handleBatchPress = () => {
-    setInputMethod('batch');
-    simulateBatchAnalysis();
-  };
+  const handleBatchPress = async () => {
+    // For batch, let user select multiple photos from library
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      quality: 0.8,
+      selectionLimit: 5,
+    });
 
-  const generateId = () => Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    if (!result.canceled && result.assets.length > 0) {
+      setAnalyzing(true);
+      const allFoods: FoodItem[] = [];
 
-  const simulatePhotoAnalysis = () => {
-    setAnalyzing(true);
-    setTimeout(() => {
-      setDetectedFoods([
-        {
-          id: generateId(),
-          name: 'Grilled Salmon',
-          portionSize: '6 oz',
-          score: 3,
-          warnings: [],
-        },
-        {
-          id: generateId(),
-          name: 'Steamed Broccoli',
-          portionSize: '1.5 cups',
-          score: 2,
-          warnings: [],
-        },
-        {
-          id: generateId(),
-          name: 'Olive Oil',
-          portionSize: '1 tbsp',
-          score: 1,
-          warnings: [],
-        },
-      ]);
+      // Analyze each selected image
+      for (const asset of result.assets) {
+        const analysis = await analyzePhoto(asset.uri);
+        if (analysis.success) {
+          allFoods.push(...analysis.foods);
+        }
+      }
+
       setAnalyzing(false);
-    }, 2000);
+
+      if (allFoods.length > 0) {
+        setDetectedFoods(allFoods);
+      } else {
+        Alert.alert(
+          'Analysis Failed',
+          'Could not identify foods in the selected images.',
+          [{ text: 'OK' }]
+        );
+      }
+    }
   };
 
-  const simulateBatchAnalysis = () => {
-    setAnalyzing(true);
-    setTimeout(() => {
-      setDetectedFoods([
-        {
-          id: generateId(),
-          name: 'Grilled Chicken',
-          portionSize: '6 oz',
-          score: 1,
-          warnings: [],
-        },
-        {
-          id: generateId(),
-          name: 'Sweet Potato',
-          portionSize: '1 cup',
-          score: 1,
-          warnings: [],
-        },
-        {
-          id: generateId(),
-          name: 'Asparagus',
-          portionSize: '1 cup',
-          score: 2,
-          warnings: [],
-        },
-      ]);
-      setAnalyzing(false);
-      setInputMethod('camera');
-    }, 2000);
-  };
 
-  const simulateBarcodeScanning = (barcode: string) => {
-    setAnalyzing(true);
-    setTimeout(() => {
-      setDetectedFoods([
-        {
-          id: generateId(),
-          name: 'Wild Planet Wild Sardines',
-          brand: 'Wild Planet',
-          upc: barcode,
-          servingSize: '1 can (3.75 oz)',
-          score: 2,
-          warnings: [],
-        },
-      ]);
-      setAnalyzing(false);
-    }, 1500);
-  };
-
-  const handleManualSubmit = () => {
+  const handleManualSubmit = async () => {
     if (!manualInput.trim()) return;
 
     setAnalyzing(true);
-    setTimeout(() => {
-      const items: FoodItem[] = manualInput.split(',').map((item) => ({
-        id: generateId(),
-        name: item.trim(),
-        portionSize: '1 serving',
-        score: Math.floor(Math.random() * 3) + 1,
-        warnings: [],
-      }));
-      setDetectedFoods(items);
-      setAnalyzing(false);
+    const result = await analyzeText(manualInput);
+    setAnalyzing(false);
+
+    if (result.success && result.foods.length > 0) {
+      setDetectedFoods(result.foods);
       setManualInput('');
       setInputMethod('camera');
-    }, 1500);
+    } else {
+      Alert.alert(
+        'Analysis Failed',
+        result.error || 'Could not analyze the food description.',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   const saveMeal = () => {
