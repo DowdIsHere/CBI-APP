@@ -1,8 +1,9 @@
 // API Configuration
-// Store your API key securely - in production, use environment variables or secure storage
+// API key is loaded from environment variables via app.config.js
+import Constants from 'expo-constants';
 
 export const API_CONFIG = {
-  ANTHROPIC_API_KEY: '', // Add your Claude API key here
+  ANTHROPIC_API_KEY: Constants.expoConfig?.extra?.anthropicApiKey || '',
   ANTHROPIC_API_URL: 'https://api.anthropic.com/v1/messages',
   MODEL: 'claude-sonnet-4-20250514',
 };
