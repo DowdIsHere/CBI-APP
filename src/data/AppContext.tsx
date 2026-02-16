@@ -25,8 +25,8 @@ interface AppContextType {
   updateSettings: (settings: Partial<Settings>) => void;
 
   // Learning actions
-  updateLessonProgress: (progress: number) => void;
-  completeLesson: () => void;
+  completeLesson: (lessonId: string, moduleId: string) => void;
+  isLessonCompleted: (lessonId: string) => boolean;
 
   // Stats helpers
   getTodaysMeals: () => Meal[];
@@ -172,23 +172,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }));
   };
 
-  // Update lesson progress
-  const updateLessonProgress = (progress: number) => {
-    setData(prev => ({
-      ...prev,
-      currentLesson: { ...prev.currentLesson, progress },
-    }));
+  // Check if a lesson is completed
+  const isLessonCompleted = (lessonId: string): boolean => {
+    return data.completedLessonIds.includes(lessonId);
   };
 
-  // Complete current lesson
-  const completeLesson = () => {
+  // Complete a lesson by ID
+  const completeLesson = (lessonId: string, moduleId: string) => {
     setData(prev => {
+      // Don't add if already completed
+      if (prev.completedLessonIds.includes(lessonId)) {
+        return prev;
+      }
+
+      const newCompletedIds = [...prev.completedLessonIds, lessonId];
+
+      // Update module completed count
       const modules = prev.learningModules.map(m => {
-        if (m.id === prev.currentLesson.moduleId) {
+        if (m.id === moduleId) {
           return { ...m, completedLessons: m.completedLessons + 1 };
         }
         return m;
       });
+
+      // Calculate total progress
+      const totalLessons = prev.learningModules.reduce((sum, m) => sum + m.lessons, 0);
+      const completedCount = newCompletedIds.length;
+      const overallProgress = Math.round((completedCount / totalLessons) * 100);
 
       // Check for Learning Started achievement
       const achievements = prev.achievements.map(a => {
@@ -200,11 +210,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       return {
         ...prev,
+        completedLessonIds: newCompletedIds,
         learningModules: modules,
         achievements,
         currentLesson: {
           ...prev.currentLesson,
-          progress: Math.min(100, prev.currentLesson.progress + 25),
+          progress: overallProgress,
         },
       };
     });
@@ -253,8 +264,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         removeTrigger,
         updateProfile,
         updateSettings,
-        updateLessonProgress,
         completeLesson,
+        isLessonCompleted,
         getTodaysMeals,
         getWeeklyStats,
         resetData,

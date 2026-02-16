@@ -6,13 +6,34 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getLessonById } from '../data/learningContent';
+import { useAppData } from '../data/AppContext';
 
 export default function LessonScreen({ route, navigation }: any) {
   const { lessonId } = route.params;
   const lesson = getLessonById(lessonId);
+  const { completeLesson, isLessonCompleted } = useAppData();
+
+  const isCompleted = lesson ? isLessonCompleted(lessonId) : false;
+
+  const handleComplete = () => {
+    if (!lesson) return;
+
+    if (isCompleted) {
+      navigation.goBack();
+      return;
+    }
+
+    completeLesson(lessonId, lesson.moduleId);
+    Alert.alert(
+      'Lesson Complete!',
+      'Great job! Keep up the learning momentum.',
+      [{ text: 'Continue', onPress: () => navigation.goBack() }]
+    );
+  };
 
   if (!lesson) {
     return (
@@ -67,11 +88,20 @@ export default function LessonScreen({ route, navigation }: any) {
         {/* Completion Button */}
         <View style={styles.actionSection}>
           <TouchableOpacity
-            style={styles.completeButton}
-            onPress={() => navigation.goBack()}
+            style={[
+              styles.completeButton,
+              isCompleted && styles.completedButton,
+            ]}
+            onPress={handleComplete}
           >
-            <Ionicons name="checkmark-circle" size={24} color="white" />
-            <Text style={styles.completeButtonText}>Mark as Complete</Text>
+            <Ionicons
+              name={isCompleted ? 'checkmark-done-circle' : 'checkmark-circle'}
+              size={24}
+              color="white"
+            />
+            <Text style={styles.completeButtonText}>
+              {isCompleted ? 'Completed - Continue' : 'Mark as Complete'}
+            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -185,6 +215,9 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     gap: 8,
+  },
+  completedButton: {
+    backgroundColor: '#6b7280',
   },
   completeButtonText: {
     color: 'white',

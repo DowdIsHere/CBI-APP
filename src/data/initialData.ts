@@ -56,6 +56,8 @@ export const initialData: AppData = {
     timeEstimate: '5 min',
   },
 
+  completedLessonIds: [],
+
   settings: {
     notificationsEnabled: true,
     remindersEnabled: true,
@@ -164,10 +166,12 @@ export const demoData: AppData = {
   currentLesson: {
     moduleId: '1',
     week: 'Week 1: Foundation',
-    title: 'Meet Your Enteric Nervous System',
+    title: 'The Three Intelligences',
     progress: 75,
     timeEstimate: '5 min',
   },
+
+  completedLessonIds: ['1-1', '1-2', '1-3'], // First 3 lessons of Foundation module
 
   settings: {
     notificationsEnabled: true,

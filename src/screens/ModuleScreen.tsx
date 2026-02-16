@@ -14,7 +14,7 @@ import { useAppData } from '../data/AppContext';
 export default function ModuleScreen({ route, navigation }: any) {
   const { moduleId, moduleTitle, moduleColor } = route.params;
   const lessons = getLessonsByModule(moduleId);
-  const { data } = useAppData();
+  const { data, isLessonCompleted } = useAppData();
 
   const module = data.learningModules.find(m => m.id === moduleId);
   const completedLessons = module?.completedLessons || 0;
@@ -41,29 +41,44 @@ export default function ModuleScreen({ route, navigation }: any) {
         {/* Lessons List */}
         <View style={styles.lessonsSection}>
           <Text style={styles.sectionTitle}>Lessons</Text>
-          {lessons.map((lesson, index) => (
-            <TouchableOpacity
-              key={lesson.id}
-              style={styles.lessonCard}
-              onPress={() => navigation.navigate('Lesson', { lessonId: lesson.id })}
-            >
-              <View style={styles.lessonNumber}>
-                <Text style={styles.lessonNumberText}>{index + 1}</Text>
-              </View>
-              <View style={styles.lessonInfo}>
-                <Text style={styles.lessonTitle}>{lesson.title}</Text>
-                <View style={styles.lessonMeta}>
-                  <Ionicons name="time-outline" size={14} color="#6b7280" />
-                  <Text style={styles.lessonDuration}>{lesson.duration}</Text>
+          {lessons.map((lesson, index) => {
+            const completed = isLessonCompleted(lesson.id);
+            return (
+              <TouchableOpacity
+                key={lesson.id}
+                style={styles.lessonCard}
+                onPress={() => navigation.navigate('Lesson', { lessonId: lesson.id })}
+              >
+                <View style={[
+                  styles.lessonNumber,
+                  completed && styles.lessonNumberCompleted,
+                ]}>
+                  {completed ? (
+                    <Ionicons name="checkmark" size={18} color="white" />
+                  ) : (
+                    <Text style={styles.lessonNumberText}>{index + 1}</Text>
+                  )}
                 </View>
-              </View>
-              {lesson.completed ? (
-                <Ionicons name="checkmark-circle" size={24} color="#10b981" />
-              ) : (
-                <Ionicons name="chevron-forward" size={24} color="#9ca3af" />
-              )}
-            </TouchableOpacity>
-          ))}
+                <View style={styles.lessonInfo}>
+                  <Text style={[
+                    styles.lessonTitle,
+                    completed && styles.lessonTitleCompleted,
+                  ]}>
+                    {lesson.title}
+                  </Text>
+                  <View style={styles.lessonMeta}>
+                    <Ionicons name="time-outline" size={14} color="#6b7280" />
+                    <Text style={styles.lessonDuration}>{lesson.duration}</Text>
+                  </View>
+                </View>
+                {completed ? (
+                  <Ionicons name="checkmark-circle" size={24} color="#10b981" />
+                ) : (
+                  <Ionicons name="chevron-forward" size={24} color="#9ca3af" />
+                )}
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* Module Description */}
@@ -149,6 +164,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  lessonNumberCompleted: {
+    backgroundColor: '#10b981',
+  },
   lessonNumberText: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -162,6 +180,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1f2937',
     marginBottom: 4,
+  },
+  lessonTitleCompleted: {
+    color: '#6b7280',
   },
   lessonMeta: {
     flexDirection: 'row',

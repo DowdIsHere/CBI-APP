@@ -136,5 +136,6 @@ export interface AppData {
   insights: Insight[];
   learningModules: LearningModule[];
   currentLesson: CurrentLesson;
+  completedLessonIds: string[];
   settings: Settings;
 }
