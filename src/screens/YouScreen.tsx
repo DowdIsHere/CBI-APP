@@ -8,23 +8,104 @@ import {
   SafeAreaView,
   Switch,
   Dimensions,
+  TextInput,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Panel from '../components/panels/Panel';
 import { useAppData } from '../data/AppContext';
+import { Trigger } from '../data/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+// Common trigger suggestions
+const TRIGGER_SUGGESTIONS = [
+  { name: 'Gluten', category: 'Food Group' as const },
+  { name: 'Dairy', category: 'Food Group' as const },
+  { name: 'Nightshades', category: 'Food Group' as const },
+  { name: 'Eggs', category: 'Food Group' as const },
+  { name: 'Soy', category: 'Food Group' as const },
+  { name: 'Corn', category: 'Food Group' as const },
+  { name: 'Peanuts', category: 'Allergy' as const },
+  { name: 'Tree Nuts', category: 'Allergy' as const },
+  { name: 'Shellfish', category: 'Allergy' as const },
+  { name: 'Fish', category: 'Allergy' as const },
+  { name: 'Sulfites', category: 'Sensitivity' as const },
+  { name: 'Histamines', category: 'Sensitivity' as const },
+  { name: 'FODMAPs', category: 'Sensitivity' as const },
+  { name: 'Caffeine', category: 'Sensitivity' as const },
+];
+
 export default function YouScreen({ navigation }: any) {
   const [triggersOpen, setTriggersOpen] = useState(false);
+  const [addTriggerOpen, setAddTriggerOpen] = useState(false);
   const [progressOpen, setProgressOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [customTriggerName, setCustomTriggerName] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<Trigger['category']>('Food Group');
+  const [selectedSeverity, setSelectedSeverity] = useState<Trigger['severity']>('medium');
 
-  const { data, getWeeklyStats, removeTrigger, updateSettings } = useAppData();
+  const { data, getWeeklyStats, addTrigger, removeTrigger, updateSettings } = useAppData();
   const { user, stats, triggers, settings } = data;
 
   const weeklyData = getWeeklyStats();
   const maxScore = Math.max(...weeklyData.map((d) => d.score), 1);
+
+  const handleRemoveTrigger = (triggerId: string, triggerName: string) => {
+    Alert.alert(
+      'Remove Trigger',
+      `Are you sure you want to remove "${triggerName}" from your trigger list?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => removeTrigger(triggerId),
+        },
+      ]
+    );
+  };
+
+  const handleAddSuggestion = (suggestion: typeof TRIGGER_SUGGESTIONS[0]) => {
+    // Check if already exists
+    if (triggers.some(t => t.name.toLowerCase() === suggestion.name.toLowerCase())) {
+      Alert.alert('Already Added', `${suggestion.name} is already in your trigger list.`);
+      return;
+    }
+
+    addTrigger({
+      name: suggestion.name,
+      category: suggestion.category,
+      severity: 'medium',
+    });
+    setAddTriggerOpen(false);
+  };
+
+  const handleAddCustomTrigger = () => {
+    const name = customTriggerName.trim();
+    if (!name) {
+      Alert.alert('Enter Name', 'Please enter a trigger name.');
+      return;
+    }
+
+    if (triggers.some(t => t.name.toLowerCase() === name.toLowerCase())) {
+      Alert.alert('Already Added', `${name} is already in your trigger list.`);
+      return;
+    }
+
+    addTrigger({
+      name,
+      category: selectedCategory,
+      severity: selectedSeverity,
+    });
+    setCustomTriggerName('');
+    setAddTriggerOpen(false);
+  };
+
+  // Filter out already-added suggestions
+  const availableSuggestions = TRIGGER_SUGGESTIONS.filter(
+    s => !triggers.some(t => t.name.toLowerCase() === s.name.toLowerCase())
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -149,38 +230,171 @@ export default function YouScreen({ navigation }: any) {
           Foods and ingredients that may cause symptoms
         </Text>
 
-        {triggers.map((trigger, idx) => (
-          <View key={idx} style={styles.triggerItem}>
-            <View style={styles.triggerInfo}>
-              <View
-                style={[
-                  styles.triggerSeverity,
-                  {
-                    backgroundColor:
-                      trigger.severity === 'high' ? '#fee2e2' : '#fef3c7',
-                  },
-                ]}
-              >
-                <Ionicons
-                  name={trigger.severity === 'high' ? 'alert-circle' : 'warning'}
-                  size={16}
-                  color={trigger.severity === 'high' ? '#ef4444' : '#f59e0b'}
-                />
-              </View>
-              <View>
-                <Text style={styles.triggerName}>{trigger.name}</Text>
-                <Text style={styles.triggerCategory}>{trigger.category}</Text>
-              </View>
-            </View>
-            <TouchableOpacity>
-              <Ionicons name="close-circle" size={22} color="#9ca3af" />
-            </TouchableOpacity>
+        {triggers.length === 0 ? (
+          <View style={styles.emptyTriggers}>
+            <Ionicons name="shield-checkmark-outline" size={48} color="#9ca3af" />
+            <Text style={styles.emptyTriggersText}>No triggers added yet</Text>
+            <Text style={styles.emptyTriggersSubtext}>
+              Add foods that cause you symptoms
+            </Text>
           </View>
-        ))}
+        ) : (
+          triggers.map((trigger) => (
+            <View key={trigger.id} style={styles.triggerItem}>
+              <View style={styles.triggerInfo}>
+                <View
+                  style={[
+                    styles.triggerSeverity,
+                    {
+                      backgroundColor:
+                        trigger.severity === 'high'
+                          ? '#fee2e2'
+                          : trigger.severity === 'medium'
+                          ? '#fef3c7'
+                          : '#d1fae5',
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name={
+                      trigger.severity === 'high'
+                        ? 'alert-circle'
+                        : trigger.severity === 'medium'
+                        ? 'warning'
+                        : 'information-circle'
+                    }
+                    size={16}
+                    color={
+                      trigger.severity === 'high'
+                        ? '#ef4444'
+                        : trigger.severity === 'medium'
+                        ? '#f59e0b'
+                        : '#10b981'
+                    }
+                  />
+                </View>
+                <View>
+                  <Text style={styles.triggerName}>{trigger.name}</Text>
+                  <Text style={styles.triggerCategory}>{trigger.category}</Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                onPress={() => handleRemoveTrigger(trigger.id, trigger.name)}
+              >
+                <Ionicons name="close-circle" size={24} color="#ef4444" />
+              </TouchableOpacity>
+            </View>
+          ))
+        )}
 
-        <TouchableOpacity style={styles.addTriggerButton}>
+        <TouchableOpacity
+          style={styles.addTriggerButton}
+          onPress={() => {
+            setTriggersOpen(false);
+            setTimeout(() => setAddTriggerOpen(true), 300);
+          }}
+        >
           <Ionicons name="add" size={20} color="#3b82f6" />
           <Text style={styles.addTriggerText}>Add Trigger</Text>
+        </TouchableOpacity>
+      </Panel>
+
+      {/* Add Trigger Panel */}
+      <Panel
+        isOpen={addTriggerOpen}
+        onClose={() => setAddTriggerOpen(false)}
+        title="Add Trigger"
+      >
+        {/* Quick Add Suggestions */}
+        <Text style={styles.addTriggerSectionTitle}>Quick Add</Text>
+        <View style={styles.suggestionGrid}>
+          {availableSuggestions.slice(0, 8).map((suggestion, idx) => (
+            <TouchableOpacity
+              key={idx}
+              style={styles.suggestionChip}
+              onPress={() => handleAddSuggestion(suggestion)}
+            >
+              <Text style={styles.suggestionChipText}>{suggestion.name}</Text>
+              <Ionicons name="add-circle" size={18} color="#3b82f6" />
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Custom Trigger */}
+        <Text style={styles.addTriggerSectionTitle}>Custom Trigger</Text>
+        <TextInput
+          style={styles.triggerInput}
+          placeholder="Enter trigger name..."
+          placeholderTextColor="#9ca3af"
+          value={customTriggerName}
+          onChangeText={setCustomTriggerName}
+        />
+
+        {/* Category Selection */}
+        <Text style={styles.addTriggerLabel}>Category</Text>
+        <View style={styles.categoryButtons}>
+          {(['Food Group', 'Allergy', 'Sensitivity'] as const).map((cat) => (
+            <TouchableOpacity
+              key={cat}
+              style={[
+                styles.categoryButton,
+                selectedCategory === cat && styles.categoryButtonActive,
+              ]}
+              onPress={() => setSelectedCategory(cat)}
+            >
+              <Text
+                style={[
+                  styles.categoryButtonText,
+                  selectedCategory === cat && styles.categoryButtonTextActive,
+                ]}
+              >
+                {cat}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Severity Selection */}
+        <Text style={styles.addTriggerLabel}>Severity</Text>
+        <View style={styles.severityButtons}>
+          {([
+            { value: 'low', label: 'Low', color: '#10b981' },
+            { value: 'medium', label: 'Medium', color: '#f59e0b' },
+            { value: 'high', label: 'High', color: '#ef4444' },
+          ] as const).map((sev) => (
+            <TouchableOpacity
+              key={sev.value}
+              style={[
+                styles.severityButton,
+                selectedSeverity === sev.value && {
+                  backgroundColor: sev.color,
+                  borderColor: sev.color,
+                },
+              ]}
+              onPress={() => setSelectedSeverity(sev.value)}
+            >
+              <Text
+                style={[
+                  styles.severityButtonText,
+                  selectedSeverity === sev.value && styles.severityButtonTextActive,
+                ]}
+              >
+                {sev.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Add Button */}
+        <TouchableOpacity
+          style={[
+            styles.addCustomButton,
+            !customTriggerName.trim() && styles.addCustomButtonDisabled,
+          ]}
+          onPress={handleAddCustomTrigger}
+          disabled={!customTriggerName.trim()}
+        >
+          <Text style={styles.addCustomButtonText}>Add Trigger</Text>
         </TouchableOpacity>
       </Panel>
 
@@ -495,6 +709,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6b7280',
   },
+  emptyTriggers: {
+    alignItems: 'center',
+    padding: 32,
+    gap: 8,
+  },
+  emptyTriggersText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  emptyTriggersSubtext: {
+    fontSize: 14,
+    color: '#9ca3af',
+  },
   addTriggerButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -511,6 +739,111 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#3b82f6',
+  },
+  // Add Trigger Panel Styles
+  addTriggerSectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 12,
+    marginTop: 8,
+  },
+  suggestionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 20,
+  },
+  suggestionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#eff6ff',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    gap: 6,
+  },
+  suggestionChipText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1e40af',
+  },
+  triggerInput: {
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 10,
+    padding: 14,
+    fontSize: 16,
+    color: '#1f2937',
+    marginBottom: 16,
+  },
+  addTriggerLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6b7280',
+    marginBottom: 8,
+  },
+  categoryButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+  },
+  categoryButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#f3f4f6',
+    alignItems: 'center',
+  },
+  categoryButtonActive: {
+    backgroundColor: '#3b82f6',
+  },
+  categoryButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  categoryButtonTextActive: {
+    color: 'white',
+  },
+  severityButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 24,
+  },
+  severityButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#f9fafb',
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+    alignItems: 'center',
+  },
+  severityButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  severityButtonTextActive: {
+    color: 'white',
+  },
+  addCustomButton: {
+    backgroundColor: '#10b981',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  addCustomButtonDisabled: {
+    backgroundColor: '#d1d5db',
+  },
+  addCustomButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'white',
   },
   // Progress Panel Styles
   progressStatsGrid: {
