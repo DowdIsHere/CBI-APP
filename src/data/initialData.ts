@@ -62,6 +62,12 @@ export const initialData: AppData = {
     notificationsEnabled: true,
     remindersEnabled: true,
     darkMode: false,
+    fastingSchedule: {
+      enabled: false,
+      startTime: '20:00',
+      endTime: '12:00',
+      days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    },
   },
 };
 
@@ -177,6 +183,12 @@ export const demoData: AppData = {
     notificationsEnabled: true,
     remindersEnabled: true,
     darkMode: false,
+    fastingSchedule: {
+      enabled: true,
+      startTime: '20:00',
+      endTime: '12:00',
+      days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+    },
   },
 };
 

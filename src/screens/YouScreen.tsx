@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,9 +14,23 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import Panel from '../components/panels/Panel';
 import { useAppData } from '../data/AppContext';
-import { Trigger } from '../data/types';
+import { Trigger, FastingSchedule } from '../data/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+const DAYS_OF_WEEK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+const CONDITIONS = [
+  'Multiple Sclerosis',
+  'Crohn\'s Disease',
+  'Ulcerative Colitis',
+  'Rheumatoid Arthritis',
+  'Psoriasis',
+  'Hashimoto\'s Thyroiditis',
+  'Lupus',
+  'General Wellness',
+  'Other',
+];
 
 // Common trigger suggestions
 const TRIGGER_SUGGESTIONS = [
@@ -41,15 +55,101 @@ export default function YouScreen({ navigation }: any) {
   const [addTriggerOpen, setAddTriggerOpen] = useState(false);
   const [progressOpen, setProgressOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [fastingOpen, setFastingOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
+
+  // Trigger form state
   const [customTriggerName, setCustomTriggerName] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<Trigger['category']>('Food Group');
   const [selectedSeverity, setSelectedSeverity] = useState<Trigger['severity']>('medium');
 
-  const { data, getWeeklyStats, addTrigger, removeTrigger, updateSettings } = useAppData();
+  // Profile form state
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editCondition, setEditCondition] = useState('');
+
+  // Fasting form state
+  const [fastingEnabled, setFastingEnabled] = useState(false);
+  const [fastingStart, setFastingStart] = useState('20:00');
+  const [fastingEnd, setFastingEnd] = useState('12:00');
+  const [fastingDays, setFastingDays] = useState<string[]>([]);
+
+  const { data, getWeeklyStats, addTrigger, removeTrigger, updateProfile, updateSettings } = useAppData();
   const { user, stats, triggers, settings } = data;
 
   const weeklyData = getWeeklyStats();
   const maxScore = Math.max(...weeklyData.map((d) => d.score), 1);
+
+  // Sync profile form when opening
+  useEffect(() => {
+    if (editProfileOpen) {
+      setEditName(user.name);
+      setEditEmail(user.email);
+      setEditCondition(user.condition);
+    }
+  }, [editProfileOpen]);
+
+  // Sync fasting form when opening
+  useEffect(() => {
+    if (fastingOpen && settings.fastingSchedule) {
+      setFastingEnabled(settings.fastingSchedule.enabled);
+      setFastingStart(settings.fastingSchedule.startTime);
+      setFastingEnd(settings.fastingSchedule.endTime);
+      setFastingDays(settings.fastingSchedule.days);
+    }
+  }, [fastingOpen]);
+
+  const handleSaveProfile = () => {
+    if (!editName.trim()) {
+      Alert.alert('Name Required', 'Please enter your name.');
+      return;
+    }
+    updateProfile({
+      name: editName.trim(),
+      email: editEmail.trim(),
+      condition: editCondition,
+    });
+    setEditProfileOpen(false);
+    Alert.alert('Profile Updated', 'Your profile has been saved.');
+  };
+
+  const handleSaveFasting = () => {
+    updateSettings({
+      fastingSchedule: {
+        enabled: fastingEnabled,
+        startTime: fastingStart,
+        endTime: fastingEnd,
+        days: fastingDays,
+      },
+    });
+    setFastingOpen(false);
+    Alert.alert('Fasting Schedule Updated', 'Your fasting schedule has been saved.');
+  };
+
+  const toggleFastingDay = (day: string) => {
+    if (fastingDays.includes(day)) {
+      setFastingDays(fastingDays.filter(d => d !== day));
+    } else {
+      setFastingDays([...fastingDays, day]);
+    }
+  };
+
+  const formatTime = (time: string): string => {
+    const [hours, minutes] = time.split(':');
+    const h = parseInt(hours);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const hour12 = h % 12 || 12;
+    return `${hour12}:${minutes} ${ampm}`;
+  };
+
+  const calculateFastingHours = (): number => {
+    const [startH] = fastingStart.split(':').map(Number);
+    const [endH] = fastingEnd.split(':').map(Number);
+    let hours = endH - startH;
+    if (hours < 0) hours += 24;
+    return 24 - hours; // Eating window is endH - startH, fasting is the rest
+  };
 
   const handleRemoveTrigger = (triggerId: string, triggerName: string) => {
     Alert.alert(
@@ -464,13 +564,26 @@ export default function YouScreen({ navigation }: any) {
       >
         {/* Health Profile */}
         <Text style={styles.settingsSectionTitle}>Health Profile</Text>
+        <TouchableOpacity
+          style={styles.settingsCard}
+          onPress={() => {
+            setSettingsOpen(false);
+            setTimeout(() => setEditProfileOpen(true), 300);
+          }}
+        >
+          <Ionicons name="person" size={22} color="#3b82f6" />
+          <View style={styles.settingsCardContent}>
+            <Text style={styles.settingsCardLabel}>Edit Profile</Text>
+            <Text style={styles.settingsCardValue}>{user.name}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+        </TouchableOpacity>
         <TouchableOpacity style={styles.settingsCard}>
           <Ionicons name="medical" size={22} color="#ef4444" />
           <View style={styles.settingsCardContent}>
             <Text style={styles.settingsCardLabel}>Primary Condition</Text>
             <Text style={styles.settingsCardValue}>{user.condition}</Text>
           </View>
-          <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
         </TouchableOpacity>
 
         {/* Notifications */}
@@ -505,20 +618,285 @@ export default function YouScreen({ navigation }: any) {
 
         {/* Account Actions */}
         <Text style={styles.settingsSectionTitle}>Account</Text>
-        <TouchableOpacity style={styles.settingsMenuItem}>
-          <Ionicons name="calendar" size={20} color="#6b7280" />
+        <TouchableOpacity
+          style={styles.settingsMenuItem}
+          onPress={() => {
+            setSettingsOpen(false);
+            setTimeout(() => setFastingOpen(true), 300);
+          }}
+        >
+          <Ionicons name="time" size={20} color="#10b981" />
           <Text style={styles.settingsMenuText}>Fasting Schedule</Text>
+          <View style={styles.settingsMenuBadge}>
+            <Text style={styles.settingsMenuBadgeText}>
+              {settings.fastingSchedule?.enabled ? 'ON' : 'OFF'}
+            </Text>
+          </View>
           <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.settingsMenuItem}>
+        <TouchableOpacity
+          style={styles.settingsMenuItem}
+          onPress={() => {
+            setSettingsOpen(false);
+            setTimeout(() => setAboutOpen(true), 300);
+          }}
+        >
           <Ionicons name="information-circle" size={20} color="#6b7280" />
           <Text style={styles.settingsMenuText}>About JD Mercer Protocol</Text>
           <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.settingsMenuItem, styles.logoutItem]}>
+        <TouchableOpacity
+          style={[styles.settingsMenuItem, styles.logoutItem]}
+          onPress={() => {
+            Alert.alert(
+              'Log Out',
+              'Are you sure you want to log out?',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Log Out', style: 'destructive', onPress: () => {
+                  // In a real app, this would clear auth and navigate to login
+                  Alert.alert('Logged Out', 'You have been logged out.');
+                }},
+              ]
+            );
+          }}
+        >
           <Ionicons name="log-out" size={20} color="#ef4444" />
           <Text style={[styles.settingsMenuText, styles.logoutText]}>Log Out</Text>
         </TouchableOpacity>
+      </Panel>
+
+      {/* Edit Profile Panel */}
+      <Panel
+        isOpen={editProfileOpen}
+        onClose={() => setEditProfileOpen(false)}
+        title="Edit Profile"
+      >
+        <Text style={styles.formLabel}>Name</Text>
+        <TextInput
+          style={styles.formInput}
+          value={editName}
+          onChangeText={setEditName}
+          placeholder="Your name"
+          placeholderTextColor="#9ca3af"
+        />
+
+        <Text style={styles.formLabel}>Email</Text>
+        <TextInput
+          style={styles.formInput}
+          value={editEmail}
+          onChangeText={setEditEmail}
+          placeholder="your@email.com"
+          placeholderTextColor="#9ca3af"
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+
+        <Text style={styles.formLabel}>Primary Condition</Text>
+        <View style={styles.conditionGrid}>
+          {CONDITIONS.map((condition) => (
+            <TouchableOpacity
+              key={condition}
+              style={[
+                styles.conditionChip,
+                editCondition === condition && styles.conditionChipActive,
+              ]}
+              onPress={() => setEditCondition(condition)}
+            >
+              <Text
+                style={[
+                  styles.conditionChipText,
+                  editCondition === condition && styles.conditionChipTextActive,
+                ]}
+              >
+                {condition}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <TouchableOpacity style={styles.saveButton} onPress={handleSaveProfile}>
+          <Text style={styles.saveButtonText}>Save Changes</Text>
+        </TouchableOpacity>
+      </Panel>
+
+      {/* Fasting Schedule Panel */}
+      <Panel
+        isOpen={fastingOpen}
+        onClose={() => setFastingOpen(false)}
+        title="Fasting Schedule"
+      >
+        <View style={styles.fastingToggleRow}>
+          <View>
+            <Text style={styles.fastingToggleLabel}>Intermittent Fasting</Text>
+            <Text style={styles.fastingToggleSubtext}>
+              {fastingEnabled ? `${calculateFastingHours()}:${24 - calculateFastingHours()} fasting protocol` : 'Currently disabled'}
+            </Text>
+          </View>
+          <Switch
+            value={fastingEnabled}
+            onValueChange={setFastingEnabled}
+            trackColor={{ false: '#d1d5db', true: '#6ee7b7' }}
+            thumbColor={fastingEnabled ? '#10b981' : '#f3f4f6'}
+          />
+        </View>
+
+        {fastingEnabled && (
+          <>
+            <View style={styles.fastingTimeSection}>
+              <Text style={styles.formLabel}>Eating Window</Text>
+              <View style={styles.fastingTimeRow}>
+                <View style={styles.fastingTimeBox}>
+                  <Text style={styles.fastingTimeLabel}>Start Eating</Text>
+                  <View style={styles.timePickerRow}>
+                    {['08:00', '10:00', '12:00', '14:00'].map((time) => (
+                      <TouchableOpacity
+                        key={time}
+                        style={[
+                          styles.timeChip,
+                          fastingEnd === time && styles.timeChipActive,
+                        ]}
+                        onPress={() => setFastingEnd(time)}
+                      >
+                        <Text
+                          style={[
+                            styles.timeChipText,
+                            fastingEnd === time && styles.timeChipTextActive,
+                          ]}
+                        >
+                          {formatTime(time)}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                <View style={styles.fastingTimeBox}>
+                  <Text style={styles.fastingTimeLabel}>Stop Eating</Text>
+                  <View style={styles.timePickerRow}>
+                    {['18:00', '19:00', '20:00', '21:00'].map((time) => (
+                      <TouchableOpacity
+                        key={time}
+                        style={[
+                          styles.timeChip,
+                          fastingStart === time && styles.timeChipActive,
+                        ]}
+                        onPress={() => setFastingStart(time)}
+                      >
+                        <Text
+                          style={[
+                            styles.timeChipText,
+                            fastingStart === time && styles.timeChipTextActive,
+                          ]}
+                        >
+                          {formatTime(time)}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            <Text style={styles.formLabel}>Active Days</Text>
+            <View style={styles.daysRow}>
+              {DAYS_OF_WEEK.map((day) => (
+                <TouchableOpacity
+                  key={day}
+                  style={[
+                    styles.dayChip,
+                    fastingDays.includes(day) && styles.dayChipActive,
+                  ]}
+                  onPress={() => toggleFastingDay(day)}
+                >
+                  <Text
+                    style={[
+                      styles.dayChipText,
+                      fastingDays.includes(day) && styles.dayChipTextActive,
+                    ]}
+                  >
+                    {day.charAt(0)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <View style={styles.fastingSummary}>
+              <Ionicons name="time-outline" size={20} color="#10b981" />
+              <Text style={styles.fastingSummaryText}>
+                Fast for {calculateFastingHours()} hours, eat within {24 - calculateFastingHours()} hours
+              </Text>
+            </View>
+          </>
+        )}
+
+        <TouchableOpacity style={styles.saveButton} onPress={handleSaveFasting}>
+          <Text style={styles.saveButtonText}>Save Schedule</Text>
+        </TouchableOpacity>
+      </Panel>
+
+      {/* About Panel */}
+      <Panel
+        isOpen={aboutOpen}
+        onClose={() => setAboutOpen(false)}
+        title="About"
+      >
+        <View style={styles.aboutHeader}>
+          <View style={styles.aboutLogo}>
+            <Text style={styles.aboutLogoText}>JDM</Text>
+          </View>
+          <Text style={styles.aboutTitle}>JD Mercer Protocol</Text>
+          <Text style={styles.aboutVersion}>Version 1.0.0</Text>
+        </View>
+
+        <View style={styles.aboutSection}>
+          <Text style={styles.aboutSectionTitle}>The Protocol</Text>
+          <Text style={styles.aboutText}>
+            The JD Mercer Protocol is a science-based dietary approach focused on optimizing
+            cellular biology and supporting the enteric nervous system (ENS) — your "second brain."
+          </Text>
+        </View>
+
+        <View style={styles.aboutSection}>
+          <Text style={styles.aboutSectionTitle}>Key Principles</Text>
+          <View style={styles.aboutList}>
+            <View style={styles.aboutListItem}>
+              <Ionicons name="checkmark-circle" size={18} color="#10b981" />
+              <Text style={styles.aboutListText}>Prioritize ENS-supporting foods</Text>
+            </View>
+            <View style={styles.aboutListItem}>
+              <Ionicons name="checkmark-circle" size={18} color="#10b981" />
+              <Text style={styles.aboutListText}>Eliminate inflammatory triggers</Text>
+            </View>
+            <View style={styles.aboutListItem}>
+              <Ionicons name="checkmark-circle" size={18} color="#10b981" />
+              <Text style={styles.aboutListText}>Optimize omega-3 to omega-6 ratio</Text>
+            </View>
+            <View style={styles.aboutListItem}>
+              <Ionicons name="checkmark-circle" size={18} color="#10b981" />
+              <Text style={styles.aboutListText}>Support mitochondrial function</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.aboutSection}>
+          <Text style={styles.aboutSectionTitle}>Learn More</Text>
+          <TouchableOpacity
+            style={styles.aboutLink}
+            onPress={() => {
+              setAboutOpen(false);
+              navigation.navigate('Learn');
+            }}
+          >
+            <Ionicons name="book" size={20} color="#3b82f6" />
+            <Text style={styles.aboutLinkText}>Explore the Education Center</Text>
+            <Ionicons name="chevron-forward" size={20} color="#3b82f6" />
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.aboutFooter}>
+          Made with 💙 for cellular health
+        </Text>
       </Panel>
     </SafeAreaView>
   );
@@ -987,5 +1365,250 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     color: '#ef4444',
+  },
+  settingsMenuBadge: {
+    backgroundColor: '#d1fae5',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  settingsMenuBadgeText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#059669',
+  },
+  // Form Styles
+  formLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+    marginTop: 16,
+  },
+  formInput: {
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 10,
+    padding: 14,
+    fontSize: 16,
+    color: '#1f2937',
+  },
+  conditionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 4,
+  },
+  conditionChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: '#f3f4f6',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  conditionChipActive: {
+    backgroundColor: '#eff6ff',
+    borderColor: '#3b82f6',
+  },
+  conditionChipText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#6b7280',
+  },
+  conditionChipTextActive: {
+    color: '#1d4ed8',
+  },
+  saveButton: {
+    backgroundColor: '#3b82f6',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  // Fasting Panel Styles
+  fastingToggleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#f0fdf4',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  fastingToggleLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  fastingToggleSubtext: {
+    fontSize: 13,
+    color: '#6b7280',
+    marginTop: 2,
+  },
+  fastingTimeSection: {
+    marginBottom: 16,
+  },
+  fastingTimeRow: {
+    gap: 16,
+  },
+  fastingTimeBox: {
+    marginBottom: 16,
+  },
+  fastingTimeLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#6b7280',
+    marginBottom: 8,
+  },
+  timePickerRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  timeChip: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    backgroundColor: '#f3f4f6',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  timeChipActive: {
+    backgroundColor: '#d1fae5',
+    borderColor: '#10b981',
+  },
+  timeChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  timeChipTextActive: {
+    color: '#059669',
+  },
+  daysRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 4,
+  },
+  dayChip: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f3f4f6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  dayChipActive: {
+    backgroundColor: '#d1fae5',
+    borderColor: '#10b981',
+  },
+  dayChipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  dayChipTextActive: {
+    color: '#059669',
+  },
+  fastingSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#f0fdf4',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  fastingSummaryText: {
+    fontSize: 14,
+    color: '#059669',
+    fontWeight: '500',
+  },
+  // About Panel Styles
+  aboutHeader: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  aboutLogo: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
+    backgroundColor: '#1e3a8a',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  aboutLogoText: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  aboutTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 4,
+  },
+  aboutVersion: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  aboutSection: {
+    marginBottom: 20,
+  },
+  aboutSectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 8,
+  },
+  aboutText: {
+    fontSize: 14,
+    color: '#4b5563',
+    lineHeight: 22,
+  },
+  aboutList: {
+    gap: 10,
+  },
+  aboutListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  aboutListText: {
+    fontSize: 14,
+    color: '#4b5563',
+  },
+  aboutLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#eff6ff',
+    padding: 14,
+    borderRadius: 10,
+    gap: 10,
+  },
+  aboutLinkText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#3b82f6',
+  },
+  aboutFooter: {
+    textAlign: 'center',
+    fontSize: 13,
+    color: '#9ca3af',
+    marginTop: 24,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
   },
 });

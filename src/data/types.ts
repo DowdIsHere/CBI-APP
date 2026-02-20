@@ -118,11 +118,20 @@ export interface CurrentLesson {
   timeEstimate: string;
 }
 
+// Fasting Schedule
+export interface FastingSchedule {
+  enabled: boolean;
+  startTime: string; // "18:00" format
+  endTime: string;   // "10:00" format
+  days: string[];    // ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+}
+
 // Settings
 export interface Settings {
   notificationsEnabled: boolean;
   remindersEnabled: boolean;
   darkMode: boolean;
+  fastingSchedule: FastingSchedule;
 }
 
 // App State
