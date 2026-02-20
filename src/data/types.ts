@@ -5,6 +5,10 @@ export interface UserProfile {
   condition: string;
   joinDate: string;
   avatar?: string;
+  weight?: number;        // in lbs
+  height?: number;        // in inches
+  goalWeight?: number;    // target weight in lbs
+  healthGoals?: string[]; // e.g., ['Reduce inflammation', 'Increase energy']
 }
 
 // Triggers

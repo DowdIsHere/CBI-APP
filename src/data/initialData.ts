@@ -6,6 +6,10 @@ export const initialData: AppData = {
     email: 'john@example.com',
     condition: 'Multiple Sclerosis',
     joinDate: 'Jan 2025',
+    weight: undefined,
+    height: undefined,
+    goalWeight: undefined,
+    healthGoals: [],
   },
 
   stats: {
@@ -78,6 +82,10 @@ export const demoData: AppData = {
     email: 'john@example.com',
     condition: 'Multiple Sclerosis',
     joinDate: 'Jan 2025',
+    weight: 175,
+    height: 70,
+    goalWeight: 165,
+    healthGoals: ['Reduce inflammation', 'Increase energy', 'Better sleep'],
   },
 
   stats: {

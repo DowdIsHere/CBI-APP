@@ -11,8 +11,10 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import Panel from '../components/panels/Panel';
 import { useAppData } from '../data/AppContext';
 import { Trigger, FastingSchedule } from '../data/types';
@@ -32,6 +34,17 @@ const CONDITIONS = [
   'Lupus',
   'General Wellness',
   'Other',
+];
+
+const HEALTH_GOALS = [
+  'Reduce inflammation',
+  'Increase energy',
+  'Better sleep',
+  'Weight loss',
+  'Gut health',
+  'Mental clarity',
+  'Pain reduction',
+  'Immune support',
 ];
 
 // Common trigger suggestions
@@ -79,6 +92,11 @@ export default function YouScreen({ navigation }: any) {
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editCondition, setEditCondition] = useState('');
+  const [editAvatar, setEditAvatar] = useState<string | undefined>();
+  const [editWeight, setEditWeight] = useState('');
+  const [editHeight, setEditHeight] = useState('');
+  const [editGoalWeight, setEditGoalWeight] = useState('');
+  const [editHealthGoals, setEditHealthGoals] = useState<string[]>([]);
 
   // Fasting form state
   const [fastingEnabled, setFastingEnabled] = useState(false);
@@ -98,6 +116,11 @@ export default function YouScreen({ navigation }: any) {
       setEditName(user.name);
       setEditEmail(user.email);
       setEditCondition(user.condition);
+      setEditAvatar(user.avatar);
+      setEditWeight(user.weight?.toString() || '');
+      setEditHeight(user.height?.toString() || '');
+      setEditGoalWeight(user.goalWeight?.toString() || '');
+      setEditHealthGoals(user.healthGoals || []);
     }
   }, [editProfileOpen]);
 
@@ -120,9 +143,47 @@ export default function YouScreen({ navigation }: any) {
       name: editName.trim(),
       email: editEmail.trim(),
       condition: editCondition,
+      avatar: editAvatar,
+      weight: editWeight ? parseFloat(editWeight) : undefined,
+      height: editHeight ? parseFloat(editHeight) : undefined,
+      goalWeight: editGoalWeight ? parseFloat(editGoalWeight) : undefined,
+      healthGoals: editHealthGoals,
     });
     setEditProfileOpen(false);
     Alert.alert('Profile Updated', 'Your profile has been saved.');
+  };
+
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Please allow access to your photo library.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setEditAvatar(result.assets[0].uri);
+    }
+  };
+
+  const toggleHealthGoal = (goal: string) => {
+    if (editHealthGoals.includes(goal)) {
+      setEditHealthGoals(editHealthGoals.filter(g => g !== goal));
+    } else {
+      setEditHealthGoals([...editHealthGoals, goal]);
+    }
+  };
+
+  const formatHeightDisplay = (inches: number): string => {
+    const feet = Math.floor(inches / 12);
+    const remainingInches = inches % 12;
+    return `${feet}'${remainingInches}"`;
   };
 
   const handleSaveFasting = () => {
@@ -312,9 +373,21 @@ export default function YouScreen({ navigation }: any) {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Profile Header */}
         <View style={styles.profileHeader}>
-          <View style={styles.avatarContainer}>
-            <Text style={styles.avatarText}>{user.name.charAt(0)}</Text>
-          </View>
+          <TouchableOpacity
+            style={styles.avatarTouchable}
+            onPress={() => setEditProfileOpen(true)}
+          >
+            {user.avatar ? (
+              <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatarContainer}>
+                <Text style={styles.avatarText}>{user.name.charAt(0)}</Text>
+              </View>
+            )}
+            <View style={styles.avatarEditBadge}>
+              <Ionicons name="camera" size={12} color="white" />
+            </View>
+          </TouchableOpacity>
           <Text style={styles.userName}>{user.name}</Text>
           <Text style={styles.userEmail}>{user.email}</Text>
           <View style={styles.statsRow}>
@@ -972,6 +1045,23 @@ export default function YouScreen({ navigation }: any) {
         onClose={() => setEditProfileOpen(false)}
         title="Edit Profile"
       >
+        {/* Avatar Picker */}
+        <View style={styles.avatarPickerSection}>
+          <TouchableOpacity style={styles.avatarPickerButton} onPress={pickImage}>
+            {editAvatar ? (
+              <Image source={{ uri: editAvatar }} style={styles.avatarPickerImage} />
+            ) : (
+              <View style={styles.avatarPickerPlaceholder}>
+                <Text style={styles.avatarPickerInitial}>{editName?.charAt(0) || 'U'}</Text>
+              </View>
+            )}
+            <View style={styles.avatarPickerOverlay}>
+              <Ionicons name="camera" size={20} color="white" />
+              <Text style={styles.avatarPickerText}>Change Photo</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
         <Text style={styles.formLabel}>Name</Text>
         <TextInput
           style={styles.formInput}
@@ -1010,6 +1100,79 @@ export default function YouScreen({ navigation }: any) {
                 ]}
               >
                 {condition}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Body Metrics */}
+        <Text style={styles.profileSectionTitle}>Body Metrics</Text>
+        <View style={styles.metricsRow}>
+          <View style={styles.metricInput}>
+            <Text style={styles.metricLabel}>Weight (lbs)</Text>
+            <TextInput
+              style={styles.metricField}
+              value={editWeight}
+              onChangeText={setEditWeight}
+              placeholder="175"
+              placeholderTextColor="#9ca3af"
+              keyboardType="numeric"
+            />
+          </View>
+          <View style={styles.metricInput}>
+            <Text style={styles.metricLabel}>Height (in)</Text>
+            <TextInput
+              style={styles.metricField}
+              value={editHeight}
+              onChangeText={setEditHeight}
+              placeholder="70"
+              placeholderTextColor="#9ca3af"
+              keyboardType="numeric"
+            />
+            {editHeight && (
+              <Text style={styles.metricHelper}>
+                {formatHeightDisplay(parseInt(editHeight) || 0)}
+              </Text>
+            )}
+          </View>
+          <View style={styles.metricInput}>
+            <Text style={styles.metricLabel}>Goal (lbs)</Text>
+            <TextInput
+              style={styles.metricField}
+              value={editGoalWeight}
+              onChangeText={setEditGoalWeight}
+              placeholder="165"
+              placeholderTextColor="#9ca3af"
+              keyboardType="numeric"
+            />
+          </View>
+        </View>
+
+        {/* Health Goals */}
+        <Text style={styles.profileSectionTitle}>Health Goals</Text>
+        <Text style={styles.profileSectionSubtext}>Select all that apply</Text>
+        <View style={styles.healthGoalsGrid}>
+          {HEALTH_GOALS.map((goal) => (
+            <TouchableOpacity
+              key={goal}
+              style={[
+                styles.healthGoalChip,
+                editHealthGoals.includes(goal) && styles.healthGoalChipActive,
+              ]}
+              onPress={() => toggleHealthGoal(goal)}
+            >
+              <Ionicons
+                name={editHealthGoals.includes(goal) ? 'checkmark-circle' : 'add-circle-outline'}
+                size={18}
+                color={editHealthGoals.includes(goal) ? '#10b981' : '#9ca3af'}
+              />
+              <Text
+                style={[
+                  styles.healthGoalText,
+                  editHealthGoals.includes(goal) && styles.healthGoalTextActive,
+                ]}
+              >
+                {goal}
               </Text>
             </TouchableOpacity>
           ))}
@@ -1343,6 +1506,10 @@ const styles = StyleSheet.create({
     padding: 32,
     alignItems: 'center',
   },
+  avatarTouchable: {
+    position: 'relative',
+    marginBottom: 16,
+  },
   avatarContainer: {
     width: 80,
     height: 80,
@@ -1350,12 +1517,31 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+  },
+  avatarImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 3,
+    borderColor: 'white',
   },
   avatarText: {
     fontSize: 32,
     fontWeight: 'bold',
     color: '#1e3a8a',
+  },
+  avatarEditBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#3b82f6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'white',
   },
   userName: {
     fontSize: 22,
@@ -2369,5 +2555,119 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 12,
     lineHeight: 18,
+  },
+  // Avatar Picker Styles
+  avatarPickerSection: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  avatarPickerButton: {
+    position: 'relative',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    overflow: 'hidden',
+  },
+  avatarPickerImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+  },
+  avatarPickerPlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#e5e7eb',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarPickerInitial: {
+    fontSize: 40,
+    fontWeight: 'bold',
+    color: '#6b7280',
+  },
+  avatarPickerOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  avatarPickerText: {
+    fontSize: 10,
+    color: 'white',
+    marginTop: 2,
+  },
+  // Profile Section Styles
+  profileSectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginTop: 24,
+    marginBottom: 4,
+  },
+  profileSectionSubtext: {
+    fontSize: 13,
+    color: '#6b7280',
+    marginBottom: 12,
+  },
+  // Body Metrics Styles
+  metricsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
+  metricInput: {
+    flex: 1,
+  },
+  metricLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#6b7280',
+    marginBottom: 6,
+  },
+  metricField: {
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: '#1f2937',
+    textAlign: 'center',
+  },
+  metricHelper: {
+    fontSize: 11,
+    color: '#3b82f6',
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  // Health Goals Styles
+  healthGoalsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  healthGoalChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    backgroundColor: '#f3f4f6',
+    gap: 6,
+  },
+  healthGoalChipActive: {
+    backgroundColor: '#d1fae5',
+  },
+  healthGoalText: {
+    fontSize: 13,
+    color: '#6b7280',
+  },
+  healthGoalTextActive: {
+    color: '#059669',
+    fontWeight: '500',
   },
 });
