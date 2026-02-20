@@ -10,11 +10,13 @@ import {
   Dimensions,
   TextInput,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Panel from '../components/panels/Panel';
 import { useAppData } from '../data/AppContext';
 import { Trigger, FastingSchedule } from '../data/types';
+import { exportAndShare, getExportSummary, ExportFormat, ExportScope } from '../services/dataExport';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -58,6 +60,12 @@ export default function YouScreen({ navigation }: any) {
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [fastingOpen, setFastingOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+
+  // Export state
+  const [exportFormat, setExportFormat] = useState<ExportFormat>('json');
+  const [exportScope, setExportScope] = useState<ExportScope>('all');
+  const [isExporting, setIsExporting] = useState(false);
 
   // Trigger form state
   const [customTriggerName, setCustomTriggerName] = useState('');
@@ -149,6 +157,21 @@ export default function YouScreen({ navigation }: any) {
     let hours = endH - startH;
     if (hours < 0) hours += 24;
     return 24 - hours; // Eating window is endH - startH, fasting is the rest
+  };
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    const result = await exportAndShare(data, {
+      format: exportFormat,
+      scope: exportScope,
+    });
+    setIsExporting(false);
+
+    if (result.success) {
+      setExportOpen(false);
+    } else {
+      Alert.alert('Export Failed', result.error || 'Unable to export data');
+    }
   };
 
   const handleRemoveTrigger = (triggerId: string, triggerName: string) => {
@@ -303,11 +326,17 @@ export default function YouScreen({ navigation }: any) {
 
         {/* Quick Actions */}
         <View style={styles.quickActions}>
-          <TouchableOpacity style={styles.quickAction}>
+          <TouchableOpacity
+            style={styles.quickAction}
+            onPress={() => setExportOpen(true)}
+          >
             <Ionicons name="download" size={20} color="#3b82f6" />
             <Text style={styles.quickActionText}>Export Data</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.quickAction}>
+          <TouchableOpacity
+            style={styles.quickAction}
+            onPress={() => navigation.navigate('Learn')}
+          >
             <Ionicons name="help-circle" size={20} color="#3b82f6" />
             <Text style={styles.quickActionText}>Help</Text>
           </TouchableOpacity>
@@ -896,6 +925,134 @@ export default function YouScreen({ navigation }: any) {
 
         <Text style={styles.aboutFooter}>
           Made with 💙 for cellular health
+        </Text>
+      </Panel>
+
+      {/* Export Panel */}
+      <Panel
+        isOpen={exportOpen}
+        onClose={() => setExportOpen(false)}
+        title="Export Data"
+      >
+        <Text style={styles.exportDescription}>
+          Export your JD Mercer Protocol data to share or backup.
+        </Text>
+
+        {/* Format Selection */}
+        <Text style={styles.formLabel}>Format</Text>
+        <View style={styles.exportFormatRow}>
+          <TouchableOpacity
+            style={[
+              styles.exportFormatOption,
+              exportFormat === 'json' && styles.exportFormatOptionActive,
+            ]}
+            onPress={() => setExportFormat('json')}
+          >
+            <Ionicons
+              name="code-slash"
+              size={24}
+              color={exportFormat === 'json' ? '#3b82f6' : '#9ca3af'}
+            />
+            <Text
+              style={[
+                styles.exportFormatText,
+                exportFormat === 'json' && styles.exportFormatTextActive,
+              ]}
+            >
+              JSON
+            </Text>
+            <Text style={styles.exportFormatSubtext}>Full data backup</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.exportFormatOption,
+              exportFormat === 'csv' && styles.exportFormatOptionActive,
+            ]}
+            onPress={() => setExportFormat('csv')}
+          >
+            <Ionicons
+              name="grid"
+              size={24}
+              color={exportFormat === 'csv' ? '#3b82f6' : '#9ca3af'}
+            />
+            <Text
+              style={[
+                styles.exportFormatText,
+                exportFormat === 'csv' && styles.exportFormatTextActive,
+              ]}
+            >
+              CSV
+            </Text>
+            <Text style={styles.exportFormatSubtext}>Spreadsheet format</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Scope Selection */}
+        <Text style={styles.formLabel}>What to Export</Text>
+        <View style={styles.exportScopeList}>
+          {([
+            { value: 'all', label: 'Everything', icon: 'archive', desc: 'Complete data backup' },
+            { value: 'meals', label: 'Meals Only', icon: 'restaurant', desc: getExportSummary(data, 'meals') },
+            { value: 'triggers', label: 'Triggers Only', icon: 'warning', desc: getExportSummary(data, 'triggers') },
+            { value: 'progress', label: 'Progress & Stats', icon: 'trending-up', desc: getExportSummary(data, 'progress') },
+          ] as const).map((option) => (
+            <TouchableOpacity
+              key={option.value}
+              style={[
+                styles.exportScopeOption,
+                exportScope === option.value && styles.exportScopeOptionActive,
+              ]}
+              onPress={() => setExportScope(option.value)}
+            >
+              <View
+                style={[
+                  styles.exportScopeIcon,
+                  exportScope === option.value && styles.exportScopeIconActive,
+                ]}
+              >
+                <Ionicons
+                  name={option.icon as any}
+                  size={20}
+                  color={exportScope === option.value ? '#3b82f6' : '#6b7280'}
+                />
+              </View>
+              <View style={styles.exportScopeContent}>
+                <Text
+                  style={[
+                    styles.exportScopeLabel,
+                    exportScope === option.value && styles.exportScopeLabelActive,
+                  ]}
+                >
+                  {option.label}
+                </Text>
+                <Text style={styles.exportScopeDesc}>{option.desc}</Text>
+              </View>
+              {exportScope === option.value && (
+                <Ionicons name="checkmark-circle" size={22} color="#3b82f6" />
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Export Button */}
+        <TouchableOpacity
+          style={[styles.exportButton, isExporting && styles.exportButtonDisabled]}
+          onPress={handleExport}
+          disabled={isExporting}
+        >
+          {isExporting ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <>
+              <Ionicons name="share-outline" size={20} color="white" />
+              <Text style={styles.exportButtonText}>Export & Share</Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        <Text style={styles.exportHint}>
+          Your data will be saved and you can share it via email, cloud storage, or other apps.
         </Text>
       </Panel>
     </SafeAreaView>
@@ -1610,5 +1767,109 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
+  },
+  // Export Panel Styles
+  exportDescription: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  exportFormatRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  exportFormatOption: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#f9fafb',
+    borderWidth: 2,
+    borderColor: 'transparent',
+    alignItems: 'center',
+    gap: 6,
+  },
+  exportFormatOptionActive: {
+    backgroundColor: '#eff6ff',
+    borderColor: '#3b82f6',
+  },
+  exportFormatText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  exportFormatTextActive: {
+    color: '#1d4ed8',
+  },
+  exportFormatSubtext: {
+    fontSize: 11,
+    color: '#9ca3af',
+  },
+  exportScopeList: {
+    gap: 10,
+    marginBottom: 20,
+  },
+  exportScopeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 10,
+    backgroundColor: '#f9fafb',
+    gap: 12,
+  },
+  exportScopeOptionActive: {
+    backgroundColor: '#eff6ff',
+  },
+  exportScopeIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: '#e5e7eb',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  exportScopeIconActive: {
+    backgroundColor: '#dbeafe',
+  },
+  exportScopeContent: {
+    flex: 1,
+  },
+  exportScopeLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  exportScopeLabelActive: {
+    color: '#1d4ed8',
+  },
+  exportScopeDesc: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 2,
+  },
+  exportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#3b82f6',
+    padding: 16,
+    borderRadius: 12,
+    gap: 8,
+  },
+  exportButtonDisabled: {
+    backgroundColor: '#93c5fd',
+  },
+  exportButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  exportHint: {
+    fontSize: 12,
+    color: '#9ca3af',
+    textAlign: 'center',
+    marginTop: 12,
+    lineHeight: 18,
   },
 });
