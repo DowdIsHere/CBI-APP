@@ -62,6 +62,9 @@ export default function YouScreen({ navigation }: any) {
   const [aboutOpen, setAboutOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
 
+  // Progress view state
+  const [progressTimeView, setProgressTimeView] = useState<'week' | 'month' | 'all'>('week');
+
   // Export state
   const [exportFormat, setExportFormat] = useState<ExportFormat>('json');
   const [exportScope, setExportScope] = useState<ExportScope>('all');
@@ -158,6 +161,80 @@ export default function YouScreen({ navigation }: any) {
     if (hours < 0) hours += 24;
     return 24 - hours; // Eating window is endH - startH, fasting is the rest
   };
+
+  // Get monthly data for calendar heatmap (last 28 days)
+  const getMonthlyData = (): { date: string; score: number; dayOfWeek: number }[] => {
+    const result: { date: string; score: number; dayOfWeek: number }[] = [];
+    for (let i = 27; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      const dayMeals = data.meals.filter(m => m.date === dateStr);
+      const dayStats = data.dailyStats.find(s => s.date === dateStr);
+      const score = dayStats?.totalScore || dayMeals.reduce((sum, m) => sum + m.totalScore, 0);
+      result.push({ date: dateStr, score, dayOfWeek: date.getDay() });
+    }
+    return result;
+  };
+
+  // Get comparison data (this week vs last week)
+  const getComparisonData = () => {
+    const thisWeek = weeklyData.reduce((sum, d) => sum + d.score, 0);
+    const lastWeekData: number[] = [];
+    for (let i = 13; i >= 7; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      const dayMeals = data.meals.filter(m => m.date === dateStr);
+      const dayStats = data.dailyStats.find(s => s.date === dateStr);
+      lastWeekData.push(dayStats?.totalScore || dayMeals.reduce((sum, m) => sum + m.totalScore, 0));
+    }
+    const lastWeek = lastWeekData.reduce((sum, s) => sum + s, 0);
+    const change = lastWeek > 0 ? Math.round(((thisWeek - lastWeek) / lastWeek) * 100) : 0;
+    return { thisWeek, lastWeek, change };
+  };
+
+  // Get trigger frequency in meals
+  const getTriggerStats = () => {
+    const triggerCounts: Record<string, number> = {};
+    data.meals.forEach(meal => {
+      meal.items.forEach(item => {
+        item.warnings.forEach(warning => {
+          triggers.forEach(trigger => {
+            if (warning.toLowerCase().includes(trigger.name.toLowerCase())) {
+              triggerCounts[trigger.name] = (triggerCounts[trigger.name] || 0) + 1;
+            }
+          });
+        });
+      });
+    });
+    return Object.entries(triggerCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3);
+  };
+
+  // Get all-time stats
+  const getAllTimeStats = () => {
+    const totalDays = data.dailyStats.length || 1;
+    const totalScore = data.dailyStats.reduce((sum, d) => sum + d.totalScore, 0);
+    const avgDaily = Math.round(totalScore / totalDays);
+    const bestDay = Math.max(...data.dailyStats.map(d => d.totalScore), 0);
+    const activeDays = data.dailyStats.filter(d => d.mealsLogged > 0).length;
+    return { totalDays, avgDaily, bestDay, activeDays };
+  };
+
+  // Get heatmap color based on score
+  const getHeatmapColor = (score: number): string => {
+    if (score === 0) return '#f3f4f6';
+    if (score < 5) return '#fef3c7';
+    if (score < 10) return '#fde68a';
+    if (score < 15) return '#86efac';
+    return '#22c55e';
+  };
+
+  const monthlyData = getMonthlyData();
+  const comparisonData = getComparisonData();
+  const allTimeStats = getAllTimeStats();
 
   const handleExport = async () => {
     setIsExporting(true);
@@ -533,6 +610,29 @@ export default function YouScreen({ navigation }: any) {
         onClose={() => setProgressOpen(false)}
         title="Your Progress"
       >
+        {/* Time View Toggle */}
+        <View style={styles.timeViewToggle}>
+          {(['week', 'month', 'all'] as const).map((view) => (
+            <TouchableOpacity
+              key={view}
+              style={[
+                styles.timeViewButton,
+                progressTimeView === view && styles.timeViewButtonActive,
+              ]}
+              onPress={() => setProgressTimeView(view)}
+            >
+              <Text
+                style={[
+                  styles.timeViewButtonText,
+                  progressTimeView === view && styles.timeViewButtonTextActive,
+                ]}
+              >
+                {view === 'week' ? 'Week' : view === 'month' ? 'Month' : 'All Time'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
         {/* Stats Grid */}
         <View style={styles.progressStatsGrid}>
           <View style={styles.progressStat}>
@@ -557,32 +657,203 @@ export default function YouScreen({ navigation }: any) {
           </View>
         </View>
 
-        {/* Weekly Chart */}
-        <Text style={styles.chartTitle}>This Week</Text>
-        <View style={styles.chart}>
-          {weeklyData.map((data, idx) => (
-            <View key={idx} style={styles.barContainer}>
-              <View style={styles.barWrapper}>
-                <View
-                  style={[
-                    styles.bar,
-                    {
-                      height: `${(data.score / maxScore) * 100}%`,
-                      backgroundColor:
-                        data.score >= 12
-                          ? '#10b981'
-                          : data.score >= 8
-                          ? '#3b82f6'
-                          : '#f59e0b',
-                    },
-                  ]}
-                />
-              </View>
-              <Text style={styles.barScore}>+{data.score}</Text>
-              <Text style={styles.barLabel}>{data.day}</Text>
+        {/* Week View */}
+        {progressTimeView === 'week' && (
+          <>
+            {/* Comparison Banner */}
+            <View style={[
+              styles.comparisonBanner,
+              { backgroundColor: comparisonData.change >= 0 ? '#f0fdf4' : '#fef2f2' }
+            ]}>
+              <Ionicons
+                name={comparisonData.change >= 0 ? 'trending-up' : 'trending-down'}
+                size={20}
+                color={comparisonData.change >= 0 ? '#10b981' : '#ef4444'}
+              />
+              <Text style={[
+                styles.comparisonText,
+                { color: comparisonData.change >= 0 ? '#059669' : '#dc2626' }
+              ]}>
+                {comparisonData.change >= 0 ? '+' : ''}{comparisonData.change}% vs last week
+              </Text>
+              <Text style={styles.comparisonDetail}>
+                {comparisonData.thisWeek} pts vs {comparisonData.lastWeek} pts
+              </Text>
             </View>
-          ))}
-        </View>
+
+            {/* Weekly Chart */}
+            <Text style={styles.chartTitle}>This Week</Text>
+            <View style={styles.chart}>
+              {weeklyData.map((dayData, idx) => (
+                <View key={idx} style={styles.barContainer}>
+                  <View style={styles.barWrapper}>
+                    <View
+                      style={[
+                        styles.bar,
+                        {
+                          height: `${(dayData.score / maxScore) * 100}%`,
+                          backgroundColor:
+                            dayData.score >= 12
+                              ? '#10b981'
+                              : dayData.score >= 8
+                              ? '#3b82f6'
+                              : '#f59e0b',
+                        },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.barScore}>+{dayData.score}</Text>
+                  <Text style={styles.barLabel}>{dayData.day}</Text>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
+
+        {/* Month View - Calendar Heatmap */}
+        {progressTimeView === 'month' && (
+          <>
+            <Text style={styles.chartTitle}>Last 28 Days</Text>
+            <View style={styles.heatmapContainer}>
+              <View style={styles.heatmapDayLabels}>
+                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, idx) => (
+                  <Text key={idx} style={styles.heatmapDayLabel}>{day}</Text>
+                ))}
+              </View>
+              <View style={styles.heatmapGrid}>
+                {monthlyData.map((day, idx) => (
+                  <View
+                    key={idx}
+                    style={[
+                      styles.heatmapCell,
+                      { backgroundColor: getHeatmapColor(day.score) },
+                    ]}
+                  >
+                    {day.score > 0 && (
+                      <Text style={styles.heatmapCellText}>
+                        {day.score > 99 ? '99' : day.score}
+                      </Text>
+                    )}
+                  </View>
+                ))}
+              </View>
+              <View style={styles.heatmapLegend}>
+                <Text style={styles.heatmapLegendLabel}>Less</Text>
+                {['#f3f4f6', '#fef3c7', '#fde68a', '#86efac', '#22c55e'].map((color, idx) => (
+                  <View key={idx} style={[styles.heatmapLegendBox, { backgroundColor: color }]} />
+                ))}
+                <Text style={styles.heatmapLegendLabel}>More</Text>
+              </View>
+            </View>
+
+            {/* Monthly Summary */}
+            <View style={styles.monthlySummary}>
+              <View style={styles.monthlySummaryItem}>
+                <Text style={styles.monthlySummaryValue}>
+                  {monthlyData.filter(d => d.score > 0).length}
+                </Text>
+                <Text style={styles.monthlySummaryLabel}>Active Days</Text>
+              </View>
+              <View style={styles.monthlySummaryItem}>
+                <Text style={styles.monthlySummaryValue}>
+                  {Math.round(monthlyData.reduce((sum, d) => sum + d.score, 0) / 28)}
+                </Text>
+                <Text style={styles.monthlySummaryLabel}>Daily Avg</Text>
+              </View>
+              <View style={styles.monthlySummaryItem}>
+                <Text style={styles.monthlySummaryValue}>
+                  {Math.max(...monthlyData.map(d => d.score))}
+                </Text>
+                <Text style={styles.monthlySummaryLabel}>Best Day</Text>
+              </View>
+            </View>
+          </>
+        )}
+
+        {/* All Time View */}
+        {progressTimeView === 'all' && (
+          <>
+            <Text style={styles.chartTitle}>All Time Stats</Text>
+            <View style={styles.allTimeGrid}>
+              <View style={styles.allTimeStat}>
+                <View style={[styles.allTimeIcon, { backgroundColor: '#dbeafe' }]}>
+                  <Ionicons name="calendar" size={24} color="#3b82f6" />
+                </View>
+                <Text style={styles.allTimeValue}>{allTimeStats.activeDays}</Text>
+                <Text style={styles.allTimeLabel}>Active Days</Text>
+              </View>
+              <View style={styles.allTimeStat}>
+                <View style={[styles.allTimeIcon, { backgroundColor: '#d1fae5' }]}>
+                  <Ionicons name="stats-chart" size={24} color="#10b981" />
+                </View>
+                <Text style={styles.allTimeValue}>{allTimeStats.avgDaily}</Text>
+                <Text style={styles.allTimeLabel}>Daily Average</Text>
+              </View>
+              <View style={styles.allTimeStat}>
+                <View style={[styles.allTimeIcon, { backgroundColor: '#fef3c7' }]}>
+                  <Ionicons name="trophy" size={24} color="#f59e0b" />
+                </View>
+                <Text style={styles.allTimeValue}>{allTimeStats.bestDay}</Text>
+                <Text style={styles.allTimeLabel}>Best Single Day</Text>
+              </View>
+              <View style={styles.allTimeStat}>
+                <View style={[styles.allTimeIcon, { backgroundColor: '#ede9fe' }]}>
+                  <Ionicons name="school" size={24} color="#8b5cf6" />
+                </View>
+                <Text style={styles.allTimeValue}>{data.completedLessonIds.length}</Text>
+                <Text style={styles.allTimeLabel}>Lessons Done</Text>
+              </View>
+            </View>
+
+            {/* Achievements Progress */}
+            <Text style={styles.chartTitle}>Achievements</Text>
+            <View style={styles.achievementsRow}>
+              {data.achievements.slice(0, 6).map((achievement) => (
+                <View
+                  key={achievement.id}
+                  style={[
+                    styles.achievementBadge,
+                    !achievement.unlocked && styles.achievementBadgeLocked,
+                  ]}
+                >
+                  <Ionicons
+                    name={achievement.icon as any}
+                    size={24}
+                    color={achievement.unlocked ? achievement.color : '#d1d5db'}
+                  />
+                </View>
+              ))}
+            </View>
+            <Text style={styles.achievementsCount}>
+              {data.achievements.filter(a => a.unlocked).length} of {data.achievements.length} unlocked
+            </Text>
+          </>
+        )}
+
+        {/* Trigger Insights - Show in all views */}
+        {triggers.length > 0 && (
+          <>
+            <Text style={[styles.chartTitle, { marginTop: 20 }]}>Trigger Exposure</Text>
+            <View style={styles.triggerInsights}>
+              {getTriggerStats().length > 0 ? (
+                getTriggerStats().map(([name, count], idx) => (
+                  <View key={idx} style={styles.triggerInsightRow}>
+                    <View style={styles.triggerInsightInfo}>
+                      <Ionicons name="warning" size={16} color="#f59e0b" />
+                      <Text style={styles.triggerInsightName}>{name}</Text>
+                    </View>
+                    <Text style={styles.triggerInsightCount}>{count}x detected</Text>
+                  </View>
+                ))
+              ) : (
+                <View style={styles.noTriggersDetected}>
+                  <Ionicons name="shield-checkmark" size={24} color="#10b981" />
+                  <Text style={styles.noTriggersText}>No trigger exposures detected!</Text>
+                </View>
+              )}
+            </View>
+          </>
+        )}
       </Panel>
 
       {/* Settings Panel */}
@@ -1445,6 +1716,233 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#6b7280',
     marginTop: 2,
+  },
+  // Time View Toggle
+  timeViewToggle: {
+    flexDirection: 'row',
+    backgroundColor: '#f3f4f6',
+    borderRadius: 10,
+    padding: 4,
+    marginBottom: 20,
+  },
+  timeViewButton: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  timeViewButtonActive: {
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  timeViewButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  timeViewButtonTextActive: {
+    color: '#3b82f6',
+  },
+  // Comparison Banner
+  comparisonBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 16,
+    gap: 8,
+  },
+  comparisonText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  comparisonDetail: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginLeft: 'auto',
+  },
+  // Heatmap Styles
+  heatmapContainer: {
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  heatmapDayLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 8,
+  },
+  heatmapDayLabel: {
+    fontSize: 11,
+    color: '#9ca3af',
+    width: 36,
+    textAlign: 'center',
+  },
+  heatmapGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+  },
+  heatmapCell: {
+    width: 36,
+    height: 36,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  heatmapCellText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  heatmapLegend: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+    gap: 4,
+  },
+  heatmapLegendLabel: {
+    fontSize: 10,
+    color: '#9ca3af',
+    marginHorizontal: 4,
+  },
+  heatmapLegendBox: {
+    width: 14,
+    height: 14,
+    borderRadius: 3,
+  },
+  // Monthly Summary
+  monthlySummary: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    padding: 16,
+  },
+  monthlySummaryItem: {
+    alignItems: 'center',
+  },
+  monthlySummaryValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1f2937',
+  },
+  monthlySummaryLabel: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 4,
+  },
+  // All Time Stats
+  allTimeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 20,
+  },
+  allTimeStat: {
+    width: '47%',
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  allTimeIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  allTimeValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1f2937',
+  },
+  allTimeLabel: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  // Achievements
+  achievementsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    padding: 16,
+  },
+  achievementBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  achievementBadgeLocked: {
+    backgroundColor: '#f3f4f6',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  achievementsCount: {
+    fontSize: 13,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginTop: 12,
+  },
+  // Trigger Insights
+  triggerInsights: {
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    padding: 14,
+  },
+  triggerInsightRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  triggerInsightInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  triggerInsightName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1f2937',
+  },
+  triggerInsightCount: {
+    fontSize: 13,
+    color: '#f59e0b',
+    fontWeight: '600',
+  },
+  noTriggersDetected: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    padding: 8,
+  },
+  noTriggersText: {
+    fontSize: 14,
+    color: '#10b981',
+    fontWeight: '500',
   },
   // Settings Panel Styles
   settingsSectionTitle: {
