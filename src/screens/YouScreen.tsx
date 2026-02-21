@@ -1305,9 +1305,11 @@ export default function YouScreen({ navigation }: any) {
         title="About"
       >
         <View style={styles.aboutHeader}>
-          <View style={styles.aboutLogo}>
-            <Text style={styles.aboutLogoText}>M</Text>
-          </View>
+          <Image
+            source={require('../../assets/logo.png')}
+            style={styles.aboutLogoImage}
+            resizeMode="contain"
+          />
           <Text style={styles.aboutTitle}>Mido</Text>
           <Text style={styles.aboutVersion}>Version 1.0.0</Text>
         </View>
@@ -2379,19 +2381,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
   },
-  aboutLogo: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
-    backgroundColor: '#1e3a8a',
-    justifyContent: 'center',
-    alignItems: 'center',
+  aboutLogoImage: {
+    width: 100,
+    height: 100,
     marginBottom: 16,
-  },
-  aboutLogoText: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: 'white',
   },
   aboutTitle: {
     fontSize: 22,

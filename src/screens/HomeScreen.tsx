@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Panel from '../components/panels/Panel';
@@ -26,9 +27,11 @@ export default function HomeScreen({ navigation }: any) {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerContent}>
-            <View style={styles.logoContainer}>
-              <Text style={styles.logoText}>M</Text>
-            </View>
+            <Image
+              source={require('../../assets/logo.png')}
+              style={styles.headerLogo}
+              resizeMode="contain"
+            />
             <View style={styles.headerTextContainer}>
               <Text style={styles.headerTitle}>Mido</Text>
               <Text style={styles.headerSubtitle}>Enteric Nervous System Support</Text>
@@ -282,19 +285,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  logoContainer: {
+  headerLogo: {
     width: 48,
     height: 48,
-    backgroundColor: 'white',
     borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
     marginRight: 12,
-  },
-  logoText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1e3a8a',
   },
   headerTextContainer: {
     flex: 1,
