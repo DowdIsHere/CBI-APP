@@ -5,6 +5,9 @@ import { ActivityIndicator, View } from 'react-native';
 import AppNavigator from './src/navigation/AppNavigator';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import { AppProvider, useAppData } from './src/data/AppContext';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { ToastProvider } from './src/contexts/ToastContext';
+import OfflineBanner from './src/components/OfflineBanner';
 
 function AppContent() {
   const { isLoading, hasCompletedOnboarding } = useAppData();
@@ -31,6 +34,7 @@ function AppContent() {
   return (
     <NavigationContainer>
       <AppNavigator />
+      <OfflineBanner />
       <StatusBar style="light" />
     </NavigationContainer>
   );
@@ -38,8 +42,12 @@ function AppContent() {
 
 export default function App() {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <ToastProvider>
+          <AppContent />
+        </ToastProvider>
+      </AppProvider>
+    </ErrorBoundary>
   );
 }

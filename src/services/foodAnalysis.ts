@@ -1,11 +1,13 @@
 import { readAsStringAsync } from 'expo-file-system';
 import { API_CONFIG } from './config';
 import { FoodItem } from '../data/types';
+import { checkNetworkConnection, ErrorMessages } from './errorHandling';
 
 interface AnalysisResult {
   success: boolean;
   foods: FoodItem[];
   error?: string;
+  errorType?: 'network' | 'api' | 'parse' | 'unknown';
 }
 
 // Generate unique ID
@@ -66,9 +68,23 @@ export async function analyzePhoto(imageUri: string): Promise<AnalysisResult> {
     return getDemoAnalysis();
   }
 
+  // Check network connectivity first
+  const isConnected = await checkNetworkConnection();
+  if (!isConnected) {
+    return {
+      success: false,
+      foods: [],
+      error: ErrorMessages.NETWORK_OFFLINE,
+      errorType: 'network',
+    };
+  }
+
   try {
     const base64Image = await imageToBase64(imageUri);
     const mediaType = getMediaType(imageUri);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
     const response = await fetch(API_CONFIG.ANTHROPIC_API_URL, {
       method: 'POST',
@@ -100,15 +116,30 @@ export async function analyzePhoto(imageUri: string): Promise<AnalysisResult> {
           },
         ],
       }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error('API Error:', errorText);
+
+      // Provide user-friendly error messages based on status code
+      let userMessage = 'Unable to analyze the photo. Please try again.';
+      if (response.status === 401 || response.status === 403) {
+        userMessage = 'Authentication error. Please check your API key.';
+      } else if (response.status === 429) {
+        userMessage = 'Too many requests. Please wait a moment and try again.';
+      } else if (response.status >= 500) {
+        userMessage = 'The analysis service is temporarily unavailable. Please try again later.';
+      }
+
       return {
         success: false,
         foods: [],
-        error: `API request failed: ${response.status}`,
+        error: userMessage,
+        errorType: 'api',
       };
     }
 
@@ -119,12 +150,21 @@ export async function analyzePhoto(imageUri: string): Promise<AnalysisResult> {
       return {
         success: false,
         foods: [],
-        error: 'No response from API',
+        error: 'No food items could be identified in the image. Try taking a clearer photo.',
+        errorType: 'parse',
       };
     }
 
     // Parse JSON response
     const foods = parseAnalysisResponse(content);
+
+    if (foods.length === 0) {
+      return {
+        success: true,
+        foods: [],
+        error: 'No food detected in the image. Try taking a photo of your meal from a different angle.',
+      };
+    }
 
     return {
       success: true,
@@ -132,10 +172,33 @@ export async function analyzePhoto(imageUri: string): Promise<AnalysisResult> {
     };
   } catch (error) {
     console.error('Analysis error:', error);
+
+    // Handle specific error types
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        return {
+          success: false,
+          foods: [],
+          error: 'Analysis is taking too long. Please try again with a smaller image.',
+          errorType: 'network',
+        };
+      }
+
+      if (error.message.includes('Network') || error.message.includes('fetch')) {
+        return {
+          success: false,
+          foods: [],
+          error: ErrorMessages.NETWORK_OFFLINE,
+          errorType: 'network',
+        };
+      }
+    }
+
     return {
       success: false,
       foods: [],
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: ErrorMessages.ANALYSIS_FAILED,
+      errorType: 'unknown',
     };
   }
 }
