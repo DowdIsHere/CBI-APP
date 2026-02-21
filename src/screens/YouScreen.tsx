@@ -494,7 +494,7 @@ export default function YouScreen({ navigation }: any) {
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>JD Mercer Protocol</Text>
+          <Text style={styles.footerText}>Mido</Text>
           <Text style={styles.footerVersion}>Version 1.0.0</Text>
         </View>
       </ScrollView>
@@ -1015,7 +1015,7 @@ export default function YouScreen({ navigation }: any) {
           }}
         >
           <Ionicons name="information-circle" size={20} color="#6b7280" />
-          <Text style={styles.settingsMenuText}>About JD Mercer Protocol</Text>
+          <Text style={styles.settingsMenuText}>About Mido</Text>
           <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
         </TouchableOpacity>
         <TouchableOpacity
@@ -1306,16 +1306,16 @@ export default function YouScreen({ navigation }: any) {
       >
         <View style={styles.aboutHeader}>
           <View style={styles.aboutLogo}>
-            <Text style={styles.aboutLogoText}>JDM</Text>
+            <Text style={styles.aboutLogoText}>M</Text>
           </View>
-          <Text style={styles.aboutTitle}>JD Mercer Protocol</Text>
+          <Text style={styles.aboutTitle}>Mido</Text>
           <Text style={styles.aboutVersion}>Version 1.0.0</Text>
         </View>
 
         <View style={styles.aboutSection}>
           <Text style={styles.aboutSectionTitle}>The Protocol</Text>
           <Text style={styles.aboutText}>
-            The JD Mercer Protocol is a science-based dietary approach focused on optimizing
+            Mido is a science-based dietary approach focused on optimizing
             cellular biology and supporting the enteric nervous system (ENS) — your "second brain."
           </Text>
         </View>
@@ -1369,7 +1369,7 @@ export default function YouScreen({ navigation }: any) {
         title="Export Data"
       >
         <Text style={styles.exportDescription}>
-          Export your JD Mercer Protocol data to share or backup.
+          Export your Mido data to share or backup.
         </Text>
 
         {/* Format Selection */}

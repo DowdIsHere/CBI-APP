@@ -86,7 +86,7 @@ export default function ModuleScreen({ route, navigation }: any) {
           <Text style={styles.descriptionTitle}>About This Module</Text>
           <Text style={styles.descriptionText}>
             {moduleId === '1' &&
-              'Learn the foundational concepts behind the JD Mercer Protocol, including how your enteric nervous system works and why it matters for your health.'}
+              'Learn the foundational concepts behind the Mido Protocol, including how your enteric nervous system works and why it matters for your health.'}
             {moduleId === '2' &&
               'Dive deep into the mechanisms that connect your gut, brain, and cellular health. Understand inflammation, omega balances, and the microbiome.'}
             {moduleId === '3' &&

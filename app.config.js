@@ -2,8 +2,8 @@ import 'dotenv/config';
 
 export default {
   expo: {
-    name: 'JD Mercer Protocol',
-    slug: 'jd-mercer-protocol',
+    name: 'Mido App',
+    slug: 'mido-app',
     version: '1.0.0',
     orientation: 'portrait',
     icon: './assets/icon.png',
@@ -17,7 +17,7 @@ export default {
     },
     ios: {
       supportsTablet: true,
-      bundleIdentifier: 'com.jdmercer.protocol',
+      bundleIdentifier: 'com.mido.app',
       jsEngine: 'jsc',
       infoPlist: {
         NSCameraUsageDescription:
@@ -32,7 +32,7 @@ export default {
         foregroundImage: './assets/adaptive-icon.png',
         backgroundColor: '#1e3a8a',
       },
-      package: 'com.jdmercer.protocol',
+      package: 'com.mido.app',
       permissions: [
         'android.permission.CAMERA',
         'android.permission.READ_EXTERNAL_STORAGE',
@@ -50,14 +50,14 @@ export default {
         'expo-camera',
         {
           cameraPermission:
-            'Allow JD Mercer Protocol to access your camera to take photos of your meals.',
+            'Allow Mido to access your camera to take photos of your meals.',
         },
       ],
       [
         'expo-image-picker',
         {
           photosPermission:
-            'Allow JD Mercer Protocol to access your photos to select meal images for analysis.',
+            'Allow Mido to access your photos to select meal images for analysis.',
         },
       ],
     ],

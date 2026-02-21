@@ -8,7 +8,7 @@ export const API_CONFIG = {
   MODEL: 'claude-sonnet-4-20250514',
 };
 
-// Food scoring criteria based on JD Mercer Protocol
+// Food scoring criteria based on Mido Protocol
 export const SCORING_CRITERIA = {
   // Foods that support ENS health score higher
   HIGH_SCORE_KEYWORDS: [

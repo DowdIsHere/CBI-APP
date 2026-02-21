@@ -51,7 +51,7 @@ export const lessons: Lesson[] = [
       'Mitochondria are the energy-producing organelles in your cells. They convert nutrients into ATP, the energy currency your body uses for everything.',
       'Your brain and nervous system are particularly dependent on mitochondrial function. When mitochondria are damaged or dysfunctional, neurological symptoms often follow.',
       'Many foods can either support or damage your mitochondria. Processed foods, seed oils, and excess sugar impair mitochondrial function, while omega-3s, B vitamins, and certain antioxidants support it.',
-      'The JD Mercer Protocol focuses on foods that optimize mitochondrial health, directly supporting your nervous system\'s energy needs.',
+      'The Mido Protocol focuses on foods that optimize mitochondrial health, directly supporting your nervous system\'s energy needs.',
     ],
     keyPoints: [
       'Mitochondria produce cellular energy (ATP)',
@@ -67,7 +67,7 @@ export const lessons: Lesson[] = [
     duration: '5 min',
     completed: false,
     content: [
-      'The JD Mercer Protocol is built around supporting three interconnected "intelligences" in your body: Gut Intelligence (ENS), Brain Intelligence (CNS), and Cellular Intelligence (Mitochondria).',
+      'The Mido Protocol is built around supporting three interconnected "intelligences" in your body: Gut Intelligence (ENS), Brain Intelligence (CNS), and Cellular Intelligence (Mitochondria).',
       'These three systems form a triangle of health. When one is compromised, the others suffer. When you support all three, you create a powerful synergy of healing.',
       'Gut Intelligence processes food and generates neurotransmitters. Brain Intelligence coordinates body functions and cognition. Cellular Intelligence produces the energy both need to function.',
       'Every food you eat either supports or stresses these intelligences. Our scoring system reflects this - high-scoring foods support all three, while low-scoring foods stress them.',

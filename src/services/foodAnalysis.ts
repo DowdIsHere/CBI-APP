@@ -40,7 +40,7 @@ function getMediaType(uri: string): string {
 }
 
 // System prompt for food analysis
-const ANALYSIS_PROMPT = `You are a nutrition analyst for the JD Mercer Protocol app, which focuses on supporting the Enteric Nervous System (ENS) - the "second brain" in the gut.
+const ANALYSIS_PROMPT = `You are a nutrition analyst for the Mido app, which focuses on supporting the Enteric Nervous System (ENS) - the "second brain" in the gut.
 
 Analyze the food in this image and return a JSON array of detected food items. For each item, provide:
 - name: The food name

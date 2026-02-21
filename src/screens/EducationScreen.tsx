@@ -139,7 +139,7 @@ export default function EducationScreen({ navigation }: any) {
           <Text style={styles.sectionTitle}>Key Concepts</Text>
 
           <View style={styles.conceptCard}>
-            <Text style={styles.conceptTitle}>What is JD Mercer Protocol?</Text>
+            <Text style={styles.conceptTitle}>What is Mido?</Text>
             <Text style={styles.conceptText}>
               A science-based approach to understanding how food either
               enhances or impairs your body's natural intelligence systems.
