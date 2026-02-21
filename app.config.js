@@ -65,6 +65,12 @@ export default {
       eas: {
         projectId: 'f9613b42-7190-42a9-bd60-1c4b7746f893',
       },
+      // API Configuration
+      apiUrl: process.env.API_URL || 'https://your-app.railway.app',
+      // Supabase Configuration
+      supabaseUrl: process.env.SUPABASE_URL,
+      supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+      // Legacy - remove after backend is deployed
       anthropicApiKey: process.env.ANTHROPIC_API_KEY,
     },
   },
