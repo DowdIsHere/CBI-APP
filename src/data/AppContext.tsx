@@ -4,11 +4,16 @@ import { AppData, Meal, FoodItem, Trigger, Insight, UserProfile, Settings } from
 import { demoData, initialData } from './initialData';
 
 const STORAGE_KEY = '@cbi_app_data';
-const USE_DEMO_DATA = true; // Set to false for fresh start
+const ONBOARDING_KEY = '@cbi_onboarding_complete';
+const USE_DEMO_DATA = false; // Set to false for new user experience
 
 interface AppContextType {
   data: AppData;
   isLoading: boolean;
+  hasCompletedOnboarding: boolean;
+
+  // Onboarding
+  completeOnboarding: () => Promise<void>;
 
   // Meal actions
   addMeal: (meal: Omit<Meal, 'id'>) => void;
@@ -41,10 +46,12 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export function AppProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<AppData>(USE_DEMO_DATA ? demoData : initialData);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(USE_DEMO_DATA);
 
   // Load data from storage on mount
   useEffect(() => {
     loadData();
+    loadOnboardingStatus();
   }, []);
 
   // Save data to storage whenever it changes
@@ -66,6 +73,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
       console.error('Failed to load data:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadOnboardingStatus = async () => {
+    try {
+      const completed = await AsyncStorage.getItem(ONBOARDING_KEY);
+      if (completed === 'true') {
+        setHasCompletedOnboarding(true);
+      }
+    } catch (error) {
+      console.error('Failed to load onboarding status:', error);
+    }
+  };
+
+  const completeOnboarding = async () => {
+    try {
+      await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
+      setHasCompletedOnboarding(true);
+    } catch (error) {
+      console.error('Failed to save onboarding status:', error);
     }
   };
 
@@ -258,6 +285,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       value={{
         data,
         isLoading,
+        hasCompletedOnboarding,
+        completeOnboarding,
         addMeal,
         deleteMeal,
         addTrigger,
