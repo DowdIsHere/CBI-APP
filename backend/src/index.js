@@ -68,6 +68,21 @@ async function authenticateUser(req, res, next) {
   }
 }
 
+// Root route - API info
+app.get('/', (req, res) => {
+  res.json({
+    name: 'Mido API',
+    version: '1.0.0',
+    status: 'running',
+    endpoints: {
+      health: 'GET /health',
+      analyze: 'POST /api/analyze',
+      sync: 'GET|POST /api/sync',
+      profile: 'GET|PUT /api/profile',
+    },
+  });
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
