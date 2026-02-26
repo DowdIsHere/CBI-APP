@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   form: {
-    gap: 16,
+    // Using marginBottom instead of gap for compatibility
   },
   inputContainer: {
     flexDirection: 'row',
@@ -230,6 +230,7 @@ const styles = StyleSheet.create({
     borderColor: '#e5e7eb',
     borderRadius: 12,
     paddingHorizontal: 16,
+    marginBottom: 16,
   },
   inputIcon: {
     marginRight: 12,
@@ -263,11 +264,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 24,
-    gap: 8,
   },
   toggleText: {
     fontSize: 14,
     color: '#6b7280',
+    marginRight: 8,
   },
   toggleLink: {
     fontSize: 14,

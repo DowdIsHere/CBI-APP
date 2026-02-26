@@ -110,7 +110,7 @@ export default function Toast({
       ]}
     >
       <View style={styles.content}>
-        <Ionicons name={config.icon as any} size={22} color="white" />
+        <Ionicons name={config.icon as any} size={22} color="white" style={styles.iconStyle} />
         <Text style={styles.message} numberOfLines={2}>
           {message}
         </Text>
@@ -158,7 +158,9 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+  },
+  iconStyle: {
+    marginRight: 12,
   },
   message: {
     flex: 1,
@@ -170,13 +172,13 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
   },
   actionButton: {
     paddingVertical: 6,
     paddingHorizontal: 12,
     backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: 6,
+    marginRight: 8,
   },
   actionText: {
     fontSize: 13,

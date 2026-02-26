@@ -50,6 +50,7 @@ export default function OfflineBanner() {
         name={isOffline ? 'cloud-offline' : 'cloud-done'}
         size={18}
         color="white"
+        style={styles.icon}
       />
       <Text style={styles.text}>
         {isOffline ? 'No internet connection' : 'Back online'}
@@ -69,8 +70,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 8,
     paddingTop: 48, // Account for status bar
-    gap: 8,
     zIndex: 1000,
+  },
+  icon: {
+    marginRight: 8,
   },
   offline: {
     backgroundColor: '#ef4444',
