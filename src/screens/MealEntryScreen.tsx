@@ -8,30 +8,46 @@ import {
   SafeAreaView,
   Alert,
   ActivityIndicator,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Camera, CameraView } from 'expo-camera';
 import { BarcodeScanningResult } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
+import { saveMeal, getTimeString, getTodayDate } from '../utils/storage';
+import { DetectedFood } from '../types';
 
-export default function MealEntryScreen({ route }: any) {
+export default function MealEntryScreen({ route, navigation }: any) {
   const [inputMethod, setInputMethod] = useState<string | null>(
     route?.params?.method || null
   );
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
-  const [detectedFoods, setDetectedFoods] = useState<any[]>([]);
+  const [detectedFoods, setDetectedFoods] = useState<DetectedFood[]>([]);
   const [cameraActive, setCameraActive] = useState(false);
+  const [mealName, setMealName] = useState('');
+
+  // Manual entry state
+  const [manualFoodName, setManualFoodName] = useState('');
+  const [manualPortion, setManualPortion] = useState('');
+  const [manualItems, setManualItems] = useState<DetectedFood[]>([]);
 
   useEffect(() => {
     (async () => {
       const { status: cameraStatus } =
         await Camera.requestCameraPermissionsAsync();
-      const { status: libraryStatus } =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
       setHasPermission(cameraStatus === 'granted');
     })();
   }, []);
+
+  useEffect(() => {
+    if (route?.params?.method) {
+      handleInputMethod(route.params.method);
+    }
+  }, [route?.params?.method]);
 
   const inputMethods = [
     {
@@ -64,12 +80,30 @@ export default function MealEntryScreen({ route }: any) {
     },
   ];
 
+  const scoreFood = (name: string): number => {
+    const lower = name.toLowerCase();
+    // High score foods (ENS beneficial)
+    if (/salmon|sardine|mackerel|anchov/.test(lower)) return 3;
+    if (/broccoli|kale|cabbage|cauliflower|brussels|arugula/.test(lower)) return 2;
+    if (/blueberr|blackberr|raspberr|strawberr/.test(lower)) return 2;
+    if (/spinach|sweet potato|avocado|olive oil|turmeric|ginger/.test(lower)) return 2;
+    if (/walnut|almond|flax|chia|hemp/.test(lower)) return 2;
+    if (/kimchi|sauerkraut|kefir|kombucha|yogurt|miso/.test(lower)) return 2;
+    if (/chicken|turkey|egg|beef|lamb/.test(lower)) return 1;
+    if (/rice|quinoa|oat|bean|lentil/.test(lower)) return 1;
+    if (/apple|banana|orange|grape|mango/.test(lower)) return 1;
+    // Neutral / negative
+    if (/soda|candy|chips|fries|donut|cake|cookie|ice cream/.test(lower)) return -1;
+    if (/processed|hot dog|bacon|sausage/.test(lower)) return -1;
+    return 1;
+  };
+
   const handleInputMethod = async (method: string) => {
     setInputMethod(method);
 
     if (method === 'photo') {
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [4, 3],
         quality: 1,
@@ -84,10 +118,8 @@ export default function MealEntryScreen({ route }: any) {
       setCameraActive(true);
     } else if (method === 'batch') {
       simulateBatchAnalysis();
-    } else if (method === 'manual') {
-      Alert.alert('Manual Entry', 'Manual entry feature coming soon!');
-      setInputMethod(null);
     }
+    // manual is handled via the form UI below
   };
 
   const handleBarCodeScanned = ({ type, data }: BarcodeScanningResult) => {
@@ -127,10 +159,10 @@ export default function MealEntryScreen({ route }: any) {
           name: 'Meal Prep Container 1',
           items: [
             { name: 'Grilled Chicken', portion: '6 oz', score: 1 },
-            { name: 'Sweet Potato', portion: '1 cup', score: 1 },
+            { name: 'Sweet Potato', portion: '1 cup', score: 2 },
             { name: 'Asparagus', portion: '1 cup', score: 2 },
           ],
-          totalScore: 4,
+          totalScore: 5,
         },
       ]);
       setAnalyzing(false);
@@ -147,7 +179,7 @@ export default function MealEntryScreen({ route }: any) {
           brand: 'Wild Planet',
           upc: barcode,
           servingSize: '1 can (3.75 oz)',
-          score: 2,
+          score: 3,
           warnings: [],
         },
       ]);
@@ -155,25 +187,73 @@ export default function MealEntryScreen({ route }: any) {
     }, 1500);
   };
 
-  const saveMeal = () => {
-    const totalScore = detectedFoods.reduce((sum, food) => {
-      if (food.items) return sum + food.totalScore;
+  const addManualItem = () => {
+    if (!manualFoodName.trim()) {
+      Alert.alert('Missing Info', 'Please enter a food name.');
+      return;
+    }
+    const score = scoreFood(manualFoodName);
+    const newItem: DetectedFood = {
+      id: Date.now(),
+      name: manualFoodName.trim(),
+      portionSize: manualPortion.trim() || '1 serving',
+      score,
+      warnings: [],
+    };
+    setManualItems([...manualItems, newItem]);
+    setManualFoodName('');
+    setManualPortion('');
+  };
+
+  const removeManualItem = (id: number) => {
+    setManualItems(manualItems.filter((item) => item.id !== id));
+  };
+
+  const handleSaveMeal = async () => {
+    const foods = inputMethod === 'manual' ? manualItems : detectedFoods;
+    if (foods.length === 0) {
+      Alert.alert('No Items', 'Add at least one food item before saving.');
+      return;
+    }
+
+    const totalScore = foods.reduce((sum, food) => {
+      if ('totalScore' in food) return sum + food.totalScore;
       return sum + food.score;
     }, 0);
 
+    const meal = {
+      id: Date.now().toString(),
+      name: mealName.trim() || getMealNameFromTime(),
+      date: getTodayDate(),
+      time: getTimeString(),
+      items: foods,
+      totalScore,
+      method: inputMethod as 'photo' | 'batch' | 'barcode' | 'manual',
+    };
+
+    await saveMeal(meal);
+
     Alert.alert(
       'Meal Saved!',
-      `Score: +${totalScore}. Check your Progress Tracker to see the impact.`,
+      `${meal.name} saved with score: ${totalScore >= 0 ? '+' : ''}${totalScore}. Check your Progress to see the impact.`,
       [
         {
           text: 'OK',
           onPress: () => {
-            setInputMethod(null);
-            setDetectedFoods([]);
+            reset();
+            navigation.navigate('Home');
           },
         },
       ]
     );
+  };
+
+  const getMealNameFromTime = (): string => {
+    const hour = new Date().getHours();
+    if (hour < 11) return 'Breakfast';
+    if (hour < 15) return 'Lunch';
+    if (hour < 17) return 'Snack';
+    return 'Dinner';
   };
 
   const removeFood = (foodId: number) => {
@@ -184,6 +264,10 @@ export default function MealEntryScreen({ route }: any) {
     setInputMethod(null);
     setDetectedFoods([]);
     setCameraActive(false);
+    setManualItems([]);
+    setManualFoodName('');
+    setManualPortion('');
+    setMealName('');
   };
 
   if (cameraActive && hasPermission) {
@@ -228,171 +312,290 @@ export default function MealEntryScreen({ route }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
-        {/* Method Selection */}
-        {!inputMethod && !analyzing && detectedFoods.length === 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
-              How would you like to add your meal?
-            </Text>
-            <View style={styles.methodsGrid}>
-              {inputMethods.map((method) => (
-                <TouchableOpacity
-                  key={method.id}
-                  style={[
-                    styles.methodCard,
-                    { borderColor: method.color + '40' },
-                  ]}
-                  onPress={() => handleInputMethod(method.id)}
-                >
-                  <Ionicons
-                    name={method.icon as any}
-                    size={48}
-                    color={method.color}
-                  />
-                  <Text style={styles.methodName}>{method.name}</Text>
-                  <Text style={styles.methodDescription}>
-                    {method.description}
-                  </Text>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView style={styles.scrollView}>
+          {/* Method Selection */}
+          {!inputMethod && !analyzing && detectedFoods.length === 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>
+                How would you like to add your meal?
+              </Text>
+              <View style={styles.methodsGrid}>
+                {inputMethods.map((method) => (
+                  <TouchableOpacity
+                    key={method.id}
+                    style={[
+                      styles.methodCard,
+                      { borderColor: method.color + '40' },
+                    ]}
+                    onPress={() => handleInputMethod(method.id)}
+                  >
+                    <Ionicons
+                      name={method.icon as any}
+                      size={48}
+                      color={method.color}
+                    />
+                    <Text style={styles.methodName}>{method.name}</Text>
+                    <Text style={styles.methodDescription}>
+                      {method.description}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <View style={styles.featuresSection}>
+                <View style={styles.featureCard}>
+                  <Ionicons name="camera" size={24} color="#3b82f6" />
+                  <View style={styles.featureContent}>
+                    <Text style={styles.featureTitle}>Photo Analysis</Text>
+                    <Text style={styles.featureText}>
+                      AI identifies all foods instantly
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.featureCard}>
+                  <Ionicons name="scan" size={24} color="#10b981" />
+                  <View style={styles.featureContent}>
+                    <Text style={styles.featureTitle}>Barcode Scanner</Text>
+                    <Text style={styles.featureText}>
+                      Hidden inflammatory oils detected
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Analyzing State */}
+          {analyzing && (
+            <View style={styles.analyzingContainer}>
+              <ActivityIndicator size="large" color="#3b82f6" />
+              <Text style={styles.analyzingTitle}>
+                {inputMethod === 'photo' && 'Analyzing Your Photo...'}
+                {inputMethod === 'batch' && 'Scanning Multiple Meals...'}
+                {inputMethod === 'barcode' && 'Looking Up Product...'}
+              </Text>
+              <Text style={styles.analyzingSubtitle}>
+                AI is working its magic
+              </Text>
+            </View>
+          )}
+
+          {/* Manual Entry Form */}
+          {inputMethod === 'manual' && (
+            <View style={styles.section}>
+              <View style={styles.manualHeader}>
+                <Text style={styles.sectionTitle}>Manual Entry</Text>
+                <TouchableOpacity onPress={reset}>
+                  <Ionicons name="close-circle" size={24} color="#9ca3af" />
                 </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Features */}
-            <View style={styles.featuresSection}>
-              <View style={styles.featureCard}>
-                <Ionicons name="camera" size={24} color="#3b82f6" />
-                <View style={styles.featureContent}>
-                  <Text style={styles.featureTitle}>Photo Analysis</Text>
-                  <Text style={styles.featureText}>
-                    AI identifies all foods instantly
-                  </Text>
-                </View>
               </View>
-              <View style={styles.featureCard}>
-                <Ionicons name="scan" size={24} color="#10b981" />
-                <View style={styles.featureContent}>
-                  <Text style={styles.featureTitle}>Barcode Scanner</Text>
-                  <Text style={styles.featureText}>
-                    Hidden inflammatory oils detected
-                  </Text>
-                </View>
+
+              <TextInput
+                style={styles.mealNameInput}
+                placeholder="Meal name (e.g., Breakfast, Lunch)"
+                placeholderTextColor="#9ca3af"
+                value={mealName}
+                onChangeText={setMealName}
+              />
+
+              <View style={styles.manualInputRow}>
+                <TextInput
+                  style={[styles.input, { flex: 2 }]}
+                  placeholder="Food name (e.g., Grilled Salmon)"
+                  placeholderTextColor="#9ca3af"
+                  value={manualFoodName}
+                  onChangeText={setManualFoodName}
+                />
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  placeholder="Portion"
+                  placeholderTextColor="#9ca3af"
+                  value={manualPortion}
+                  onChangeText={setManualPortion}
+                />
               </View>
-            </View>
-          </View>
-        )}
 
-        {/* Analyzing State */}
-        {analyzing && (
-          <View style={styles.analyzingContainer}>
-            <ActivityIndicator size="large" color="#3b82f6" />
-            <Text style={styles.analyzingTitle}>
-              {inputMethod === 'photo' && 'Analyzing Your Photo...'}
-              {inputMethod === 'batch' && 'Scanning Multiple Meals...'}
-              {inputMethod === 'barcode' && 'Looking Up Product...'}
-            </Text>
-            <Text style={styles.analyzingSubtitle}>
-              AI is working its magic
-            </Text>
-          </View>
-        )}
+              <TouchableOpacity style={styles.addItemButton} onPress={addManualItem}>
+                <Ionicons name="add-circle" size={20} color="white" />
+                <Text style={styles.addItemButtonText}>Add Item</Text>
+              </TouchableOpacity>
 
-        {/* Results */}
-        {!analyzing && detectedFoods.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Detected Items</Text>
-            {detectedFoods.map((food) => (
-              <View key={food.id} style={styles.foodCard}>
-                <View style={styles.foodHeader}>
-                  <View style={styles.foodInfo}>
-                    <Text style={styles.foodName}>{food.name}</Text>
-                    {food.brand && (
-                      <Text style={styles.foodBrand}>{food.brand}</Text>
-                    )}
-                    {food.portionSize && (
-                      <Text style={styles.foodPortion}>{food.portionSize}</Text>
-                    )}
-                    {food.servingSize && (
-                      <Text style={styles.foodPortion}>{food.servingSize}</Text>
-                    )}
-                  </View>
-                  <View>
-                    <View
-                      style={[
-                        styles.scoreBadge,
-                        {
-                          backgroundColor:
-                            food.score >= 2 ? '#d1fae5' : '#dbeafe',
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.scoreBadgeText,
-                          { color: food.score >= 2 ? '#047857' : '#1e40af' },
-                        ]}
-                      >
-                        +{food.score}
-                      </Text>
-                    </View>
-                    <TouchableOpacity
-                      style={styles.removeButton}
-                      onPress={() => removeFood(food.id)}
-                    >
-                      <Ionicons name="trash" size={20} color="#ef4444" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                {/* Batch Items */}
-                {food.items && (
-                  <View style={styles.batchItems}>
-                    {food.items.map((item: any, idx: number) => (
-                      <View key={idx} style={styles.batchItem}>
-                        <Text style={styles.batchItemName}>{item.name}</Text>
-                        <Text style={styles.batchItemPortion}>
-                          ({item.portion})
+              {manualItems.length > 0 && (
+                <View style={styles.manualItemsList}>
+                  {manualItems.map((item) => (
+                    <View key={item.id} style={styles.manualItemCard}>
+                      <View style={styles.manualItemInfo}>
+                        <Text style={styles.manualItemName}>{item.name}</Text>
+                        <Text style={styles.manualItemPortion}>
+                          {'portionSize' in item ? item.portionSize : ''}
                         </Text>
                       </View>
-                    ))}
+                      <View style={styles.manualItemRight}>
+                        <View
+                          style={[
+                            styles.scoreBadge,
+                            {
+                              backgroundColor:
+                                ('score' in item ? item.score : 0) >= 2 ? '#d1fae5' : ('score' in item ? item.score : 0) >= 0 ? '#dbeafe' : '#fee2e2',
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.scoreBadgeText,
+                              {
+                                color:
+                                  ('score' in item ? item.score : 0) >= 2 ? '#047857' : ('score' in item ? item.score : 0) >= 0 ? '#1e40af' : '#dc2626',
+                              },
+                            ]}
+                          >
+                            {('score' in item ? item.score : 0) >= 0 ? '+' : ''}{'score' in item ? item.score : item.totalScore}
+                          </Text>
+                        </View>
+                        <TouchableOpacity onPress={() => removeManualItem(item.id)}>
+                          <Ionicons name="trash" size={18} color="#ef4444" />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ))}
+
+                  <View style={styles.summaryCard}>
+                    <Text style={styles.summaryTitle}>Meal Summary</Text>
+                    <View style={styles.summaryContent}>
+                      <View style={styles.summaryItem}>
+                        <Text style={styles.summaryLabel}>Total Score</Text>
+                        <Text style={styles.summaryValue}>
+                          {manualItems.reduce((s, f) => s + ('score' in f ? f.score : f.totalScore), 0) >= 0 ? '+' : ''}
+                          {manualItems.reduce((s, f) => s + ('score' in f ? f.score : f.totalScore), 0)}
+                        </Text>
+                      </View>
+                      <View style={styles.summaryItem}>
+                        <Text style={styles.summaryLabel}>Items</Text>
+                        <Text style={styles.summaryValue}>
+                          {manualItems.length}
+                        </Text>
+                      </View>
+                    </View>
                   </View>
-                )}
-              </View>
-            ))}
 
-            {/* Summary */}
-            <View style={styles.summaryCard}>
-              <Text style={styles.summaryTitle}>Meal Summary</Text>
-              <View style={styles.summaryContent}>
-                <View style={styles.summaryItem}>
-                  <Text style={styles.summaryLabel}>Total Score</Text>
-                  <Text style={styles.summaryValue}>
-                    +
-                    {detectedFoods.reduce(
-                      (sum, f) => sum + (f.totalScore || f.score),
-                      0
-                    )}
-                  </Text>
+                  <TouchableOpacity style={styles.saveButton} onPress={handleSaveMeal}>
+                    <Ionicons name="checkmark-circle" size={20} color="white" />
+                    <Text style={styles.saveButtonText}>Save Meal</Text>
+                  </TouchableOpacity>
                 </View>
-                <View style={styles.summaryItem}>
-                  <Text style={styles.summaryLabel}>Items Detected</Text>
-                  <Text style={styles.summaryValue}>{detectedFoods.length}</Text>
+              )}
+            </View>
+          )}
+
+          {/* Results (photo/batch/barcode) */}
+          {!analyzing && detectedFoods.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Detected Items</Text>
+
+              <TextInput
+                style={styles.mealNameInput}
+                placeholder="Meal name (optional)"
+                placeholderTextColor="#9ca3af"
+                value={mealName}
+                onChangeText={setMealName}
+              />
+
+              {detectedFoods.map((food) => (
+                <View key={food.id} style={styles.foodCard}>
+                  <View style={styles.foodHeader}>
+                    <View style={styles.foodInfo}>
+                      <Text style={styles.foodName}>{food.name}</Text>
+                      {'brand' in food && food.brand && (
+                        <Text style={styles.foodBrand}>{food.brand}</Text>
+                      )}
+                      {'portionSize' in food && food.portionSize && (
+                        <Text style={styles.foodPortion}>{food.portionSize}</Text>
+                      )}
+                      {'servingSize' in food && food.servingSize && (
+                        <Text style={styles.foodPortion}>{food.servingSize}</Text>
+                      )}
+                    </View>
+                    <View>
+                      {'score' in food && (
+                        <View
+                          style={[
+                            styles.scoreBadge,
+                            {
+                              backgroundColor:
+                                food.score >= 2 ? '#d1fae5' : '#dbeafe',
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.scoreBadgeText,
+                              { color: food.score >= 2 ? '#047857' : '#1e40af' },
+                            ]}
+                          >
+                            +{food.score}
+                          </Text>
+                        </View>
+                      )}
+                      <TouchableOpacity
+                        style={styles.removeButton}
+                        onPress={() => removeFood(food.id)}
+                      >
+                        <Ionicons name="trash" size={20} color="#ef4444" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  {'items' in food && food.items && (
+                    <View style={styles.batchItems}>
+                      {food.items.map((item: any, idx: number) => (
+                        <View key={idx} style={styles.batchItem}>
+                          <Text style={styles.batchItemName}>{item.name}</Text>
+                          <Text style={styles.batchItemPortion}>
+                            ({item.portion})
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
                 </View>
+              ))}
+
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryTitle}>Meal Summary</Text>
+                <View style={styles.summaryContent}>
+                  <View style={styles.summaryItem}>
+                    <Text style={styles.summaryLabel}>Total Score</Text>
+                    <Text style={styles.summaryValue}>
+                      +
+                      {detectedFoods.reduce(
+                        (sum, f) => sum + ('totalScore' in f ? f.totalScore : f.score),
+                        0
+                      )}
+                    </Text>
+                  </View>
+                  <View style={styles.summaryItem}>
+                    <Text style={styles.summaryLabel}>Items Detected</Text>
+                    <Text style={styles.summaryValue}>{detectedFoods.length}</Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.actions}>
+                <TouchableOpacity style={styles.resetButton} onPress={reset}>
+                  <Text style={styles.resetButtonText}>Start Over</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.saveButton} onPress={handleSaveMeal}>
+                  <Text style={styles.saveButtonText}>Save Meal</Text>
+                </TouchableOpacity>
               </View>
             </View>
-
-            {/* Actions */}
-            <View style={styles.actions}>
-              <TouchableOpacity style={styles.resetButton} onPress={reset}>
-                <Text style={styles.resetButtonText}>Start Over</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.saveButton} onPress={saveMeal}>
-                <Text style={styles.saveButtonText}>Save Meal</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-      </ScrollView>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -490,6 +693,88 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
   },
+  // Manual entry styles
+  manualHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  mealNameInput: {
+    backgroundColor: 'white',
+    padding: 14,
+    borderRadius: 8,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  manualInputRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  input: {
+    backgroundColor: 'white',
+    padding: 14,
+    borderRadius: 8,
+    fontSize: 14,
+    color: '#1f2937',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  addItemButton: {
+    backgroundColor: '#3b82f6',
+    padding: 14,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  addItemButtonText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  manualItemsList: {
+    gap: 8,
+  },
+  manualItemCard: {
+    backgroundColor: 'white',
+    padding: 14,
+    borderRadius: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  manualItemInfo: {
+    flex: 1,
+  },
+  manualItemName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  manualItemPortion: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 2,
+  },
+  manualItemRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  // Food card styles
   foodCard: {
     backgroundColor: 'white',
     padding: 16,
@@ -611,6 +896,9 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
   },
   saveButtonText: {
     fontSize: 14,
