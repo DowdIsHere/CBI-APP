@@ -14,9 +14,11 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { getProfile, saveProfile, getMeals, getStreak } from '../utils/storage';
+import { useAuth } from '../contexts/AuthContext';
 import { UserProfile } from '../types';
 
 export default function ProfileScreen() {
+  const { user, signOut } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [remindersEnabled, setRemindersEnabled] = useState(true);
   const [profile, setProfile] = useState<UserProfile>({
@@ -273,6 +275,35 @@ export default function ProfileScreen() {
             <Ionicons name="information-circle" size={20} color="#6b7280" />
             <Text style={styles.menuItemText}>About CBI</Text>
             <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Cloud Status */}
+        {user && (
+          <View style={styles.section}>
+            <View style={styles.cloudStatusCard}>
+              <Ionicons name="cloud-done" size={20} color="#10b981" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cloudStatusText}>Cloud Sync Active</Text>
+                <Text style={styles.cloudStatusEmail}>{user.email}</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Sign Out */}
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={styles.signOutButton}
+            onPress={() => {
+              Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Sign Out', style: 'destructive', onPress: signOut },
+              ]);
+            }}
+          >
+            <Ionicons name="log-out-outline" size={20} color="#ef4444" />
+            <Text style={styles.signOutText}>Sign Out</Text>
           </TouchableOpacity>
         </View>
 
@@ -590,6 +621,40 @@ const styles = StyleSheet.create({
   footerVersion: {
     fontSize: 12,
     color: '#9ca3af',
+  },
+  cloudStatusCard: {
+    backgroundColor: '#ecfdf5',
+    padding: 16,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+  },
+  cloudStatusText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#047857',
+  },
+  cloudStatusEmail: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 2,
+  },
+  signOutButton: {
+    backgroundColor: '#fee2e2',
+    padding: 16,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  signOutText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#ef4444',
   },
   // Modal styles
   modalOverlay: {

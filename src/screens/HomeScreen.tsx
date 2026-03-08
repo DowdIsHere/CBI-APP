@@ -10,9 +10,11 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { getTodayMeals, getWeekMeals, getStreak, getProfile } from '../utils/storage';
+import { useAuth } from '../contexts/AuthContext';
 import { Meal } from '../types';
 
 export default function HomeScreen({ navigation }: any) {
+  const { user } = useAuth();
   const [notifications] = useState(0);
   const [todayMeals, setTodayMeals] = useState<Meal[]>([]);
   const [todayScore, setTodayScore] = useState(0);
@@ -41,7 +43,7 @@ export default function HomeScreen({ navigation }: any) {
     setStreakCount(s);
 
     const profile = await getProfile();
-    setUserName(profile.name);
+    setUserName(profile.name || user?.user_metadata?.full_name || '');
   };
 
   const quickActions = [

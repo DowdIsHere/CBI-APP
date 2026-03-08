@@ -1,9 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../lib/supabase';
 import { Meal, UserProfile } from '../types';
 
 const MEALS_KEY = 'cbi_meals';
 const PROFILE_KEY = 'cbi_profile';
-const STREAK_KEY = 'cbi_streak';
 
 const defaultProfile: UserProfile = {
   name: '',
@@ -14,21 +14,90 @@ const defaultProfile: UserProfile = {
   sensitivities: [],
 };
 
+// --- Helper: get current user ID ---
+async function getUserId(): Promise<string | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  return user?.id ?? null;
+}
+
+// --- MEALS ---
+
 export async function getMeals(): Promise<Meal[]> {
+  try {
+    const userId = await getUserId();
+    if (userId) {
+      const { data, error } = await supabase
+        .from('meals')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+      if (!error && data) {
+        const meals = data.map(row => ({
+          id: row.id,
+          name: row.name,
+          date: row.date,
+          time: row.time,
+          items: row.items,
+          totalScore: row.total_score,
+          method: row.method,
+        }));
+        // Cache locally
+        await AsyncStorage.setItem(MEALS_KEY, JSON.stringify(meals));
+        return meals;
+      }
+    }
+  } catch {
+    // Fall back to local
+  }
   const data = await AsyncStorage.getItem(MEALS_KEY);
   return data ? JSON.parse(data) : [];
 }
 
 export async function saveMeal(meal: Meal): Promise<void> {
-  const meals = await getMeals();
+  // Save locally first (instant)
+  const meals = await getLocalMeals();
   meals.unshift(meal);
   await AsyncStorage.setItem(MEALS_KEY, JSON.stringify(meals));
+
+  // Sync to cloud
+  try {
+    const userId = await getUserId();
+    if (userId) {
+      await supabase.from('meals').insert({
+        id: meal.id,
+        user_id: userId,
+        name: meal.name,
+        date: meal.date,
+        time: meal.time,
+        items: meal.items,
+        total_score: meal.totalScore,
+        method: meal.method,
+      });
+    }
+  } catch {
+    // Saved locally, will sync later
+  }
 }
 
 export async function deleteMeal(mealId: string): Promise<void> {
-  const meals = await getMeals();
+  const meals = await getLocalMeals();
   const filtered = meals.filter((m) => m.id !== mealId);
   await AsyncStorage.setItem(MEALS_KEY, JSON.stringify(filtered));
+
+  try {
+    const userId = await getUserId();
+    if (userId) {
+      await supabase.from('meals').delete().eq('id', mealId).eq('user_id', userId);
+    }
+  } catch {
+    // Deleted locally
+  }
+}
+
+// Local-only read (for offline or quick access)
+async function getLocalMeals(): Promise<Meal[]> {
+  const data = await AsyncStorage.getItem(MEALS_KEY);
+  return data ? JSON.parse(data) : [];
 }
 
 export async function getTodayMeals(): Promise<Meal[]> {
@@ -68,14 +137,59 @@ export async function getStreak(): Promise<number> {
   return streak;
 }
 
+// --- PROFILE ---
+
 export async function getProfile(): Promise<UserProfile> {
+  try {
+    const userId = await getUserId();
+    if (userId) {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      if (!error && data) {
+        const profile: UserProfile = {
+          name: data.name || '',
+          email: data.email || '',
+          condition: data.condition || '',
+          joinDate: data.join_date || '',
+          allergies: data.allergies || [],
+          sensitivities: data.sensitivities || [],
+        };
+        await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+        return profile;
+      }
+    }
+  } catch {
+    // Fall back to local
+  }
   const data = await AsyncStorage.getItem(PROFILE_KEY);
   return data ? JSON.parse(data) : defaultProfile;
 }
 
 export async function saveProfile(profile: UserProfile): Promise<void> {
   await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+
+  try {
+    const userId = await getUserId();
+    if (userId) {
+      await supabase.from('profiles').upsert({
+        id: userId,
+        name: profile.name,
+        email: profile.email,
+        condition: profile.condition,
+        join_date: profile.joinDate,
+        allergies: profile.allergies,
+        sensitivities: profile.sensitivities,
+      });
+    }
+  } catch {
+    // Saved locally
+  }
 }
+
+// --- UTILITY ---
 
 export function getTimeString(): string {
   return new Date().toLocaleTimeString('en-US', {
