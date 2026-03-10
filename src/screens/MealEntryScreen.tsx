@@ -18,6 +18,14 @@ import { BarcodeScanningResult } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { saveMeal, getTimeString, getTodayDate } from '../utils/storage';
 import { DetectedFood } from '../types';
+import {
+  analyzePhoto,
+  photoResultToDetectedFoods,
+  scanBarcode,
+  barcodeResultToDetectedFood,
+  imageUriToBase64,
+  getUserTriggers,
+} from '../services/api';
 
 export default function MealEntryScreen({ route, navigation }: any) {
   const [inputMethod, setInputMethod] = useState<string | null>(
@@ -106,85 +114,127 @@ export default function MealEntryScreen({ route, navigation }: any) {
         mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 1,
+        quality: 0.8,
       });
 
-      if (!result.canceled) {
-        simulatePhotoAnalysis();
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        await handlePhotoAnalysis(result.assets[0].uri);
       } else {
         setInputMethod(null);
       }
     } else if (method === 'barcode') {
       setCameraActive(true);
     } else if (method === 'batch') {
-      simulateBatchAnalysis();
+      // Batch: let user pick multiple images from gallery
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsMultipleSelection: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets?.length) {
+        await handleBatchAnalysis(result.assets);
+      } else {
+        setInputMethod(null);
+      }
     }
     // manual is handled via the form UI below
   };
 
-  const handleBarCodeScanned = ({ type, data }: BarcodeScanningResult) => {
+  const handleBarCodeScanned = async ({ type, data }: BarcodeScanningResult) => {
     setCameraActive(false);
-    simulateBarcodeScanning(data);
+    await handleBarcodeScanning(data);
   };
 
-  const simulatePhotoAnalysis = () => {
+  const handlePhotoAnalysis = async (imageUri: string) => {
     setAnalyzing(true);
-    setTimeout(() => {
-      setDetectedFoods([
-        {
-          id: Date.now(),
-          name: 'Grilled Salmon',
-          portionSize: '6 oz',
-          score: 3,
-          warnings: [],
-        },
-        {
-          id: Date.now() + 1,
-          name: 'Steamed Broccoli',
-          portionSize: '1.5 cups',
-          score: 2,
-          warnings: [],
-        },
-      ]);
+    try {
+      const base64 = await imageUriToBase64(imageUri);
+      const triggers = await getUserTriggers();
+      const result = await analyzePhoto(base64, triggers);
+      const foods = photoResultToDetectedFoods(result);
+      setDetectedFoods(foods);
+    } catch (error) {
+      console.error('Photo analysis error:', error);
+      Alert.alert(
+        'Analysis Failed',
+        'Could not analyze the photo. Please try again or use manual entry.',
+        [{ text: 'OK', onPress: () => setInputMethod(null) }]
+      );
+    } finally {
       setAnalyzing(false);
-    }, 2000);
+    }
   };
 
-  const simulateBatchAnalysis = () => {
+  const handleBatchAnalysis = async (assets: ImagePicker.ImagePickerAsset[]) => {
     setAnalyzing(true);
-    setTimeout(() => {
-      setDetectedFoods([
-        {
-          id: Date.now(),
-          name: 'Meal Prep Container 1',
-          items: [
-            { name: 'Grilled Chicken', portion: '6 oz', score: 1 },
-            { name: 'Sweet Potato', portion: '1 cup', score: 2 },
-            { name: 'Asparagus', portion: '1 cup', score: 2 },
-          ],
-          totalScore: 5,
-        },
-      ]);
+    try {
+      const triggers = await getUserTriggers();
+      const allFoods: DetectedFood[] = [];
+
+      for (let i = 0; i < assets.length; i++) {
+        const base64 = await imageUriToBase64(assets[i].uri);
+        const result = await analyzePhoto(base64, triggers);
+        const containerFoods = result.foods;
+
+        allFoods.push({
+          id: Date.now() + i,
+          name: `Container ${i + 1}`,
+          items: containerFoods.map((f) => ({
+            name: f.name,
+            portion: f.portion_size,
+            score: f.inflammation_score,
+          })),
+          totalScore: containerFoods.reduce(
+            (sum, f) => sum + f.inflammation_score,
+            0
+          ),
+        });
+      }
+
+      setDetectedFoods(allFoods);
+    } catch (error) {
+      console.error('Batch analysis error:', error);
+      Alert.alert(
+        'Batch Analysis Failed',
+        'Could not analyze the photos. Please try again or use manual entry.',
+        [{ text: 'OK', onPress: () => setInputMethod(null) }]
+      );
+    } finally {
       setAnalyzing(false);
-    }, 2000);
+    }
   };
 
-  const simulateBarcodeScanning = (barcode: string) => {
+  const handleBarcodeScanning = async (barcode: string) => {
     setAnalyzing(true);
-    setTimeout(() => {
-      setDetectedFoods([
-        {
-          id: Date.now(),
-          name: 'Wild Planet Wild Sardines',
-          brand: 'Wild Planet',
-          upc: barcode,
-          servingSize: '1 can (3.75 oz)',
-          score: 3,
-          warnings: [],
-        },
-      ]);
+    try {
+      const triggers = await getUserTriggers();
+      const result = await scanBarcode(barcode, triggers);
+      const food = barcodeResultToDetectedFood(result);
+      setDetectedFoods([food]);
+
+      // Show trigger warnings if any
+      if (result.food.triggers_detected?.length > 0) {
+        Alert.alert(
+          'Trigger Warning',
+          result.food.triggers_detected.map((t) => t.warning).join('\n'),
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('Barcode scan error:', error);
+      const message = error instanceof Error ? error.message : 'Could not look up this product.';
+      Alert.alert(
+        'Scan Failed',
+        `${message}\n\nYou can enter this food manually instead.`,
+        [
+          { text: 'Manual Entry', onPress: () => setInputMethod('manual') },
+          { text: 'Try Again', onPress: () => setCameraActive(true) },
+        ]
+      );
+    } finally {
       setAnalyzing(false);
-    }, 1500);
+    }
   };
 
   const addManualItem = () => {
