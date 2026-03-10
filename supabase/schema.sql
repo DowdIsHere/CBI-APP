@@ -42,9 +42,9 @@ CREATE TABLE IF NOT EXISTS meals (
   total_score INTEGER NOT NULL DEFAULT 0,
   method TEXT NOT NULL CHECK (method IN ('photo', 'batch', 'barcode', 'manual')),
   -- Extended meal fields
-  total_net_carbs DECIMAL,
-  total_protein DECIMAL,
-  total_calories INTEGER,
+  total_net_carbs NUMERIC(10,2),
+  total_protein NUMERIC(10,2),
+  total_calories NUMERIC(10,2),
   synergy_bonuses JSONB,
   phase_appropriate BOOLEAN,
   recommendations TEXT[],
@@ -69,11 +69,11 @@ CREATE TABLE IF NOT EXISTS foods (
   ingredients TEXT[],
   ingredients_text TEXT,
   base_inflammation_score INTEGER NOT NULL,
-  calories_per_100g DECIMAL,
-  net_carbs_per_100g DECIMAL,
-  protein_per_100g DECIMAL,
-  fat_per_100g DECIMAL,
-  fiber_per_100g DECIMAL,
+  calories_per_100g NUMERIC(10,2),
+  net_carbs_per_100g NUMERIC(10,2),
+  protein_per_100g NUMERIC(10,2),
+  fat_per_100g NUMERIC(10,2),
+  fiber_per_100g NUMERIC(10,2),
   hidden_nutrients JSONB,
   tags TEXT[],
   cooking_methods JSONB,
@@ -156,10 +156,10 @@ CREATE TABLE IF NOT EXISTS daily_summaries (
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   summary_date DATE NOT NULL,
   total_meals INTEGER DEFAULT 0,
-  avg_inflammation_score DECIMAL,
-  total_net_carbs DECIMAL,
-  total_protein DECIMAL,
-  total_calories INTEGER,
+  avg_inflammation_score NUMERIC(10,2),
+  total_net_carbs NUMERIC(10,2),
+  total_protein NUMERIC(10,2),
+  total_calories NUMERIC(10,2),
   met_score_target BOOLEAN,
   met_carb_limit BOOLEAN,
   consecutive_days_on_protocol INTEGER DEFAULT 0,
@@ -167,7 +167,8 @@ CREATE TABLE IF NOT EXISTS daily_summaries (
   UNIQUE(user_id, summary_date)
 );
 
-CREATE INDEX IF NOT EXISTS idx_daily_summaries_user_date ON daily_summaries(user_id, summary_date DESC);
+CREATE INDEX IF NOT EXISTS idx_daily_summaries_user_date ON daily_summaries(user_id, summary_date);
+CREATE INDEX IF NOT EXISTS idx_daily_summaries_user_date_desc ON daily_summaries(user_id, summary_date DESC);
 
 -- =====================================================
 -- ROW LEVEL SECURITY (RLS)
@@ -224,11 +225,11 @@ CREATE POLICY "Users can delete own meals"
   TO authenticated
   USING (auth.uid() = user_id);
 
--- Foods policies (authenticated users can read all foods)
+-- Foods policies (public read for anon + authenticated)
 DROP POLICY IF EXISTS "Anyone can read foods" ON foods;
 CREATE POLICY "Anyone can read foods"
   ON foods FOR SELECT
-  TO authenticated
+  TO anon, authenticated
   USING (true);
 
 -- Allow edge functions (service role) to insert/update foods
@@ -264,11 +265,11 @@ CREATE POLICY "Users can delete own triggers"
   TO authenticated
   USING (auth.uid() = user_id);
 
--- Lessons policies (authenticated can read)
+-- Lessons policies (public read for anon + authenticated)
 DROP POLICY IF EXISTS "Anyone can read lessons" ON lessons;
 CREATE POLICY "Anyone can read lessons"
   ON lessons FOR SELECT
-  TO authenticated
+  TO anon, authenticated
   USING (true);
 
 -- User Lesson Progress policies
