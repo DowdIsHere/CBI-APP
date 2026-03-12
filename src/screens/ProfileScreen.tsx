@@ -10,9 +10,12 @@ import {
   TextInput,
   Alert,
   Modal,
+  Share,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getProfile, saveProfile, getMeals, getStreak } from '../utils/storage';
 import { useAuth } from '../contexts/AuthContext';
 import { UserProfile } from '../types';
@@ -21,6 +24,89 @@ import {
   updateNotificationSettings,
   NotificationPreferences,
 } from '../services/notifications';
+
+const FASTING_SCHEDULE_KEY = 'cbi_fasting_schedule';
+
+const FASTING_WINDOWS = [
+  {
+    id: '12:12',
+    label: '12:12',
+    eating: '12 hours',
+    fasting: '12 hours',
+    description:
+      'Beginner-friendly. Eat within a 12-hour window (e.g., 7 AM - 7 PM). Allows overnight gut repair and gentle autophagy activation.',
+    difficulty: 'Easy',
+  },
+  {
+    id: '14:10',
+    label: '14:10',
+    eating: '10 hours',
+    fasting: '14 hours',
+    description:
+      'Moderate schedule. Eat within a 10-hour window (e.g., 8 AM - 6 PM). Improved fat burning and enhanced gut lining repair.',
+    difficulty: 'Easy',
+  },
+  {
+    id: '16:8',
+    label: '16:8',
+    eating: '8 hours',
+    fasting: '16 hours',
+    description:
+      'Most popular. Eat within an 8-hour window (e.g., 10 AM - 6 PM). Significant autophagy, improved insulin sensitivity, and reduced inflammation.',
+    difficulty: 'Moderate',
+  },
+  {
+    id: '18:6',
+    label: '18:6',
+    eating: '6 hours',
+    fasting: '18 hours',
+    description:
+      'Advanced schedule. Eat within a 6-hour window (e.g., 12 PM - 6 PM). Deep autophagy, enhanced mitochondrial function, and strong anti-inflammatory effects.',
+    difficulty: 'Advanced',
+  },
+  {
+    id: '20:4',
+    label: '20:4',
+    eating: '4 hours',
+    fasting: '20 hours',
+    description:
+      'Warrior diet. Eat within a 4-hour window (e.g., 2 PM - 6 PM). Maximum cellular cleanup but requires careful nutrient planning.',
+    difficulty: 'Expert',
+  },
+];
+
+const FAQ_ITEMS = [
+  {
+    question: 'How do I log a meal?',
+    answer:
+      'Tap the "+" button on the home screen or go to the Meal Entry tab. You can use Photo AI, Barcode Scanner, Batch Scan, or Manual Entry to log your meals.',
+  },
+  {
+    question: 'What do the scores mean?',
+    answer:
+      'Each food is scored from -3 to +3 based on its impact on your ENS (gut), CNS (brain), and mitochondria. Positive scores are beneficial; negative scores indicate inflammatory or harmful foods. Aim for +10 or higher per day.',
+  },
+  {
+    question: 'How does photo analysis work?',
+    answer:
+      'Our AI analyzes your meal photo to identify individual food items, estimate portions, and calculate inflammation scores based on the Dowd Protocol database.',
+  },
+  {
+    question: 'Can I edit or delete a logged meal?',
+    answer:
+      'Yes. Go to your Progress tab, find the meal you want to modify, and swipe left to delete it or tap to view details.',
+  },
+  {
+    question: 'What is the Dowd Protocol?',
+    answer:
+      'The Dowd Protocol is a science-based nutritional framework developed by Dr. Dowd that scores foods based on their impact on your three biological intelligence systems: Enteric Nervous System (gut), Central Nervous System (brain), and Cellular energy (mitochondria).',
+  },
+  {
+    question: 'Is my data private?',
+    answer:
+      'Yes. Your meal data is stored securely and is only accessible to you. We use Supabase with row-level security to ensure your data is protected.',
+  },
+];
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
@@ -42,6 +128,13 @@ export default function ProfileScreen() {
   const [addTagModal, setAddTagModal] = useState<'allergies' | 'sensitivities' | null>(null);
   const [newTagValue, setNewTagValue] = useState('');
 
+  // Menu modal states
+  const [aboutModalVisible, setAboutModalVisible] = useState(false);
+  const [helpModalVisible, setHelpModalVisible] = useState(false);
+  const [fastingModalVisible, setFastingModalVisible] = useState(false);
+  const [selectedFastingWindow, setSelectedFastingWindow] = useState<string | null>(null);
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+
   useFocusEffect(
     useCallback(() => {
       loadData();
@@ -61,6 +154,12 @@ export default function ProfileScreen() {
     const notifPrefs = await getNotificationPreferences();
     setNotificationsEnabled(notifPrefs.notificationsEnabled);
     setRemindersEnabled(notifPrefs.mealRemindersEnabled);
+
+    // Load saved fasting schedule
+    try {
+      const saved = await AsyncStorage.getItem(FASTING_SCHEDULE_KEY);
+      if (saved) setSelectedFastingWindow(saved);
+    } catch {}
   };
 
   const openEditModal = (field: 'name' | 'email' | 'condition') => {
@@ -117,6 +216,53 @@ export default function ProfileScreen() {
       mealRemindersEnabled: enabled,
     };
     await updateNotificationSettings(newPrefs);
+  };
+
+  const handleExportData = async () => {
+    try {
+      const meals = await getMeals();
+      if (meals.length === 0) {
+        Alert.alert('No Data', 'You have no meal history to export yet.');
+        return;
+      }
+
+      const exportData = {
+        exported_at: new Date().toISOString(),
+        profile: {
+          name: profile.name,
+          condition: profile.condition,
+          allergies: profile.allergies,
+          sensitivities: profile.sensitivities,
+        },
+        total_meals: meals.length,
+        meals: meals.map((meal) => ({
+          name: meal.name,
+          date: meal.date,
+          time: meal.time,
+          score: meal.totalScore,
+          method: meal.method,
+          items: meal.items,
+        })),
+      };
+
+      const jsonString = JSON.stringify(exportData, null, 2);
+
+      await Share.share({
+        message: jsonString,
+        title: 'CBI Meal History Export',
+      });
+    } catch (error) {
+      if ((error as Error).message !== 'User did not share') {
+        Alert.alert('Export Failed', 'Could not export your data. Please try again.');
+      }
+    }
+  };
+
+  const handleSelectFastingWindow = async (windowId: string) => {
+    setSelectedFastingWindow(windowId);
+    try {
+      await AsyncStorage.setItem(FASTING_SCHEDULE_KEY, windowId);
+    } catch {}
   };
 
   const displayName = profile.name || 'Set Your Name';
@@ -284,25 +430,43 @@ export default function ProfileScreen() {
 
         {/* Menu Items */}
         <View style={styles.section}>
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => setFastingModalVisible(true)}
+          >
             <Ionicons name="calendar" size={20} color="#6b7280" />
             <Text style={styles.menuItemText}>Fasting Schedule</Text>
+            {selectedFastingWindow && (
+              <Text style={styles.menuItemBadge}>{selectedFastingWindow}</Text>
+            )}
             <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={handleExportData}
+          >
             <Ionicons name="download" size={20} color="#6b7280" />
             <Text style={styles.menuItemText}>Export Data</Text>
             <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => {
+              setExpandedFaq(null);
+              setHelpModalVisible(true);
+            }}
+          >
             <Ionicons name="help-circle" size={20} color="#6b7280" />
             <Text style={styles.menuItemText}>Help & Support</Text>
             <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => setAboutModalVisible(true)}
+          >
             <Ionicons name="information-circle" size={20} color="#6b7280" />
             <Text style={styles.menuItemText}>About CBI</Text>
             <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
@@ -414,6 +578,261 @@ export default function ProfileScreen() {
             </View>
           </View>
         </View>
+      </Modal>
+
+      {/* About CBI Modal */}
+      <Modal
+        visible={aboutModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <SafeAreaView style={styles.fullModalContainer}>
+          <View style={styles.fullModalHeader}>
+            <TouchableOpacity onPress={() => setAboutModalVisible(false)}>
+              <Ionicons name="close" size={28} color="#1f2937" />
+            </TouchableOpacity>
+            <Text style={styles.fullModalHeaderTitle}>About CBI</Text>
+            <View style={{ width: 28 }} />
+          </View>
+          <ScrollView style={styles.fullModalContent}>
+            <View style={styles.aboutLogoSection}>
+              <View style={styles.aboutLogoCircle}>
+                <Text style={styles.aboutLogoText}>CBI</Text>
+              </View>
+              <Text style={styles.aboutAppName}>CBI - The Dowd Protocol</Text>
+              <Text style={styles.aboutVersion}>Version 1.0.0</Text>
+            </View>
+
+            <View style={styles.aboutSection}>
+              <Text style={styles.aboutSectionTitle}>What is CBI?</Text>
+              <Text style={styles.aboutParagraph}>
+                Cellular Biology Intelligence (CBI) is a revolutionary approach
+                to nutrition that scores foods based on their impact on your
+                three biological intelligence systems:
+              </Text>
+              <View style={styles.aboutSystemRow}>
+                <View style={[styles.aboutSystemDot, { backgroundColor: '#3b82f6' }]} />
+                <Text style={styles.aboutSystemText}>
+                  Enteric Nervous System (ENS) - Your gut's "second brain"
+                </Text>
+              </View>
+              <View style={styles.aboutSystemRow}>
+                <View style={[styles.aboutSystemDot, { backgroundColor: '#8b5cf6' }]} />
+                <Text style={styles.aboutSystemText}>
+                  Central Nervous System (CNS) - Your brain and cognition
+                </Text>
+              </View>
+              <View style={styles.aboutSystemRow}>
+                <View style={[styles.aboutSystemDot, { backgroundColor: '#10b981' }]} />
+                <Text style={styles.aboutSystemText}>
+                  Mitochondria - Your cellular energy producers
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.aboutSection}>
+              <Text style={styles.aboutSectionTitle}>The Dowd Protocol</Text>
+              <Text style={styles.aboutParagraph}>
+                Developed by Dr. Dowd, the protocol provides a science-based
+                framework for understanding how every food you eat either
+                enhances or impairs your body's natural intelligence systems.
+                Unlike calorie counting, CBI focuses on the biological impact
+                of food at the cellular level.
+              </Text>
+            </View>
+
+            <View style={styles.aboutSection}>
+              <Text style={styles.aboutSectionTitle}>Links</Text>
+              <TouchableOpacity
+                style={styles.aboutLinkRow}
+                onPress={() => Linking.openURL('https://thedowdprotocol.com')}
+              >
+                <Ionicons name="globe-outline" size={20} color="#3b82f6" />
+                <Text style={styles.aboutLinkText}>Visit Our Website</Text>
+                <Ionicons name="open-outline" size={16} color="#9ca3af" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.aboutLinkRow}
+                onPress={() => Linking.openURL('https://thedowdprotocol.com/privacy')}
+              >
+                <Ionicons name="shield-outline" size={20} color="#3b82f6" />
+                <Text style={styles.aboutLinkText}>Privacy Policy</Text>
+                <Ionicons name="open-outline" size={16} color="#9ca3af" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.aboutLinkRow}
+                onPress={() => Linking.openURL('https://thedowdprotocol.com/terms')}
+              >
+                <Ionicons name="document-text-outline" size={20} color="#3b82f6" />
+                <Text style={styles.aboutLinkText}>Terms of Service</Text>
+                <Ionicons name="open-outline" size={16} color="#9ca3af" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ height: 40 }} />
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Help & Support Modal */}
+      <Modal
+        visible={helpModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <SafeAreaView style={styles.fullModalContainer}>
+          <View style={styles.fullModalHeader}>
+            <TouchableOpacity onPress={() => setHelpModalVisible(false)}>
+              <Ionicons name="close" size={28} color="#1f2937" />
+            </TouchableOpacity>
+            <Text style={styles.fullModalHeaderTitle}>Help & Support</Text>
+            <View style={{ width: 28 }} />
+          </View>
+          <ScrollView style={styles.fullModalContent}>
+            <Text style={styles.helpSectionTitle}>Frequently Asked Questions</Text>
+            {FAQ_ITEMS.map((faq, idx) => (
+              <TouchableOpacity
+                key={idx}
+                style={styles.helpFaqCard}
+                onPress={() => setExpandedFaq(expandedFaq === idx ? null : idx)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.helpFaqHeader}>
+                  <Text style={styles.helpFaqQuestion}>{faq.question}</Text>
+                  <Ionicons
+                    name={expandedFaq === idx ? 'chevron-up' : 'chevron-down'}
+                    size={20}
+                    color="#6b7280"
+                  />
+                </View>
+                {expandedFaq === idx && (
+                  <Text style={styles.helpFaqAnswer}>{faq.answer}</Text>
+                )}
+              </TouchableOpacity>
+            ))}
+
+            <View style={styles.helpContactSection}>
+              <Text style={styles.helpSectionTitle}>Still need help?</Text>
+              <Text style={styles.helpContactDescription}>
+                Our support team is here to assist you with any questions or
+                issues you may have.
+              </Text>
+              <TouchableOpacity
+                style={styles.helpContactButton}
+                onPress={() =>
+                  Linking.openURL(
+                    'mailto:support@thedowdprotocol.com?subject=CBI%20App%20Support%20Request'
+                  )
+                }
+              >
+                <Ionicons name="mail" size={20} color="white" />
+                <Text style={styles.helpContactButtonText}>Contact Us</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ height: 40 }} />
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Fasting Schedule Modal */}
+      <Modal
+        visible={fastingModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <SafeAreaView style={styles.fullModalContainer}>
+          <View style={styles.fullModalHeader}>
+            <TouchableOpacity onPress={() => setFastingModalVisible(false)}>
+              <Ionicons name="close" size={28} color="#1f2937" />
+            </TouchableOpacity>
+            <Text style={styles.fullModalHeaderTitle}>Fasting Schedule</Text>
+            <View style={{ width: 28 }} />
+          </View>
+          <ScrollView style={styles.fullModalContent}>
+            <Text style={styles.fastingIntro}>
+              Time-restricted eating gives your ENS time to rest and repair.
+              Select your preferred fasting window below.
+            </Text>
+
+            {FASTING_WINDOWS.map((window) => {
+              const isSelected = selectedFastingWindow === window.id;
+              return (
+                <TouchableOpacity
+                  key={window.id}
+                  style={[
+                    styles.fastingCard,
+                    isSelected && styles.fastingCardSelected,
+                  ]}
+                  onPress={() => handleSelectFastingWindow(window.id)}
+                >
+                  <View style={styles.fastingCardHeader}>
+                    <View style={styles.fastingCardTitleRow}>
+                      <Text
+                        style={[
+                          styles.fastingCardTitle,
+                          isSelected && styles.fastingCardTitleSelected,
+                        ]}
+                      >
+                        {window.label}
+                      </Text>
+                      <View
+                        style={[
+                          styles.fastingDifficultyBadge,
+                          {
+                            backgroundColor:
+                              window.difficulty === 'Easy'
+                                ? '#d1fae5'
+                                : window.difficulty === 'Moderate'
+                                ? '#dbeafe'
+                                : window.difficulty === 'Advanced'
+                                ? '#fef3c7'
+                                : '#fee2e2',
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.fastingDifficultyText,
+                            {
+                              color:
+                                window.difficulty === 'Easy'
+                                  ? '#047857'
+                                  : window.difficulty === 'Moderate'
+                                  ? '#1e40af'
+                                  : window.difficulty === 'Advanced'
+                                  ? '#92400e'
+                                  : '#dc2626',
+                            },
+                          ]}
+                        >
+                          {window.difficulty}
+                        </Text>
+                      </View>
+                    </View>
+                    {isSelected && (
+                      <Ionicons name="checkmark-circle" size={24} color="#3b82f6" />
+                    )}
+                  </View>
+                  <View style={styles.fastingTimesRow}>
+                    <Text style={styles.fastingTimeLabel}>
+                      Eating: {window.eating}
+                    </Text>
+                    <Text style={styles.fastingTimeSeparator}>|</Text>
+                    <Text style={styles.fastingTimeLabel}>
+                      Fasting: {window.fasting}
+                    </Text>
+                  </View>
+                  <Text style={styles.fastingDescription}>
+                    {window.description}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+
+            <View style={{ height: 40 }} />
+          </ScrollView>
+        </SafeAreaView>
       </Modal>
     </SafeAreaView>
   );
@@ -639,6 +1058,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1f2937',
   },
+  menuItemBadge: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#3b82f6',
+    backgroundColor: '#dbeafe',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
   footer: {
     alignItems: 'center',
     padding: 32,
@@ -687,7 +1116,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#ef4444',
   },
-  // Modal styles
+  // Inline edit modal styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -749,5 +1178,245 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     color: 'white',
+  },
+  // Full-screen modal styles
+  fullModalContainer: {
+    flex: 1,
+    backgroundColor: '#f9fafb',
+  },
+  fullModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  fullModalHeaderTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1f2937',
+  },
+  fullModalContent: {
+    flex: 1,
+    padding: 20,
+  },
+  // About CBI styles
+  aboutLogoSection: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  aboutLogoCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#1e3a8a',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  aboutLogoText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  aboutAppName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 4,
+  },
+  aboutVersion: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  aboutSection: {
+    marginBottom: 24,
+  },
+  aboutSectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 12,
+  },
+  aboutParagraph: {
+    fontSize: 14,
+    color: '#4b5563',
+    lineHeight: 22,
+    marginBottom: 12,
+  },
+  aboutSystemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 8,
+    paddingLeft: 4,
+  },
+  aboutSystemDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  aboutSystemText: {
+    fontSize: 14,
+    color: '#4b5563',
+    flex: 1,
+  },
+  aboutLinkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: 'white',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 8,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  aboutLinkText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#3b82f6',
+  },
+  // Help & Support styles
+  helpSectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 16,
+  },
+  helpFaqCard: {
+    backgroundColor: 'white',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 8,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  helpFaqHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  helpFaqQuestion: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1f2937',
+    flex: 1,
+    marginRight: 8,
+  },
+  helpFaqAnswer: {
+    fontSize: 13,
+    color: '#6b7280',
+    lineHeight: 20,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
+  helpContactSection: {
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  helpContactDescription: {
+    fontSize: 14,
+    color: '#6b7280',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  helpContactButton: {
+    backgroundColor: '#3b82f6',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  helpContactButtonText: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  // Fasting Schedule styles
+  fastingIntro: {
+    fontSize: 14,
+    color: '#6b7280',
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  fastingCard: {
+    backgroundColor: 'white',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  fastingCardSelected: {
+    borderColor: '#3b82f6',
+    backgroundColor: '#eff6ff',
+  },
+  fastingCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  fastingCardTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  fastingCardTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1f2937',
+  },
+  fastingCardTitleSelected: {
+    color: '#1e40af',
+  },
+  fastingDifficultyBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  fastingDifficultyText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  fastingTimesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  fastingTimeLabel: {
+    fontSize: 13,
+    color: '#6b7280',
+    fontWeight: '600',
+  },
+  fastingTimeSeparator: {
+    fontSize: 13,
+    color: '#d1d5db',
+  },
+  fastingDescription: {
+    fontSize: 13,
+    color: '#6b7280',
+    lineHeight: 20,
   },
 });

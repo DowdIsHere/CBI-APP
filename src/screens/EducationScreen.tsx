@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,15 +7,25 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+import {
+  fetchLessons,
+  fetchLessonProgress,
+  markLessonComplete,
+  LessonFromDB,
+  LessonProgress,
+} from '../services/api';
 
 interface LessonContent {
+  id?: string;
   title: string;
   content: string[];
 }
 
-const lessonData: Record<string, LessonContent[]> = {
+const hardcodedLessonData: Record<string, LessonContent[]> = {
   Foundation: [
     {
       title: 'Meet Your Enteric Nervous System',
@@ -86,49 +96,128 @@ export default function EducationScreen() {
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const [activeLesson, setActiveLesson] = useState<LessonContent | null>(null);
   const [activeLessonIndex, setActiveLessonIndex] = useState(0);
+  const [activeModuleTitle, setActiveModuleTitle] = useState<string | null>(null);
+  const [lessonData, setLessonData] = useState<Record<string, LessonContent[]>>(hardcodedLessonData);
+  const [completedLessonIds, setCompletedLessonIds] = useState<Set<string>>(new Set());
+  const [loadingLessons, setLoadingLessons] = useState(true);
 
-  const currentWeek = {
-    title: 'Week 1: Foundation',
-    lesson: 'Meet Your Enteric Nervous System',
-    progress: 75,
+  useFocusEffect(
+    useCallback(() => {
+      loadLessonsFromDB();
+      loadProgress();
+    }, [])
+  );
+
+  const loadLessonsFromDB = async () => {
+    setLoadingLessons(true);
+    try {
+      const dbLessons = await fetchLessons();
+      if (dbLessons && dbLessons.length > 0) {
+        // Group lessons by module
+        const grouped: Record<string, LessonContent[]> = {};
+        for (const lesson of dbLessons) {
+          if (!grouped[lesson.module]) {
+            grouped[lesson.module] = [];
+          }
+          grouped[lesson.module].push({
+            id: lesson.id,
+            title: lesson.title,
+            content: lesson.content,
+          });
+        }
+        setLessonData(grouped);
+      }
+      // If DB returns null/empty, we keep hardcodedLessonData (already set as default)
+    } catch {
+      // Fall back to hardcoded data silently
+    } finally {
+      setLoadingLessons(false);
+    }
   };
+
+  const loadProgress = async () => {
+    try {
+      const progress = await fetchLessonProgress();
+      const ids = new Set(progress.map((p) => p.lesson_id));
+      setCompletedLessonIds(ids);
+    } catch {
+      // Ignore errors
+    }
+  };
+
+  const getCompletedCountForModule = (moduleTitle: string): number => {
+    const lessons = lessonData[moduleTitle];
+    if (!lessons) return 0;
+    return lessons.filter((l) => l.id && completedLessonIds.has(l.id)).length;
+  };
+
+  const isLessonCompleted = (lesson: LessonContent): boolean => {
+    return !!lesson.id && completedLessonIds.has(lesson.id);
+  };
+
+  const handleCompleteLesson = async (lesson: LessonContent) => {
+    if (lesson.id) {
+      await markLessonComplete(lesson.id);
+      setCompletedLessonIds((prev) => new Set([...prev, lesson.id!]));
+    }
+  };
+
+  const totalLessonsCount = Object.values(lessonData).reduce(
+    (sum, lessons) => sum + lessons.length,
+    0
+  );
+  const completedCount = Object.values(lessonData).reduce(
+    (sum, lessons) => sum + lessons.filter((l) => l.id && completedLessonIds.has(l.id)).length,
+    0
+  );
+  const overallProgress = totalLessonsCount > 0 ? Math.round((completedCount / totalLessonsCount) * 100) : 0;
+
+  // Determine next lesson for the progress card
+  const getNextLesson = (): { moduleTitle: string; lessonTitle: string } | null => {
+    for (const [moduleTitle, lessons] of Object.entries(lessonData)) {
+      for (const lesson of lessons) {
+        if (!isLessonCompleted(lesson)) {
+          return { moduleTitle, lessonTitle: lesson.title };
+        }
+      }
+    }
+    return null;
+  };
+
+  const nextLesson = getNextLesson();
 
   const modules = [
     {
       id: 1,
       title: 'Foundation',
-      lessons: 4,
+      lessons: lessonData['Foundation']?.length || 0,
       duration: '20 min',
       icon: 'school',
       color: '#3b82f6',
-      completed: false,
     },
     {
       id: 2,
       title: 'Mechanisms',
-      lessons: 2,
+      lessons: lessonData['Mechanisms']?.length || 0,
       duration: '15 min',
       icon: 'cog',
       color: '#8b5cf6',
-      completed: false,
     },
     {
       id: 3,
       title: 'Optimization',
-      lessons: 1,
+      lessons: lessonData['Optimization']?.length || 0,
       duration: '10 min',
       icon: 'fitness',
       color: '#10b981',
-      completed: false,
     },
     {
       id: 4,
       title: 'Disease-Specific',
-      lessons: 0,
-      duration: 'Coming soon',
+      lessons: lessonData['Disease-Specific']?.length || 0,
+      duration: lessonData['Disease-Specific']?.length ? '15 min' : 'Coming soon',
       icon: 'medical',
       color: '#ef4444',
-      completed: false,
     },
   ];
 
@@ -183,8 +272,38 @@ export default function EducationScreen() {
   const openModule = (moduleTitle: string) => {
     const lessons = lessonData[moduleTitle];
     if (lessons && lessons.length > 0) {
+      setActiveModuleTitle(moduleTitle);
       setActiveLesson(lessons[0]);
       setActiveLessonIndex(0);
+    }
+  };
+
+  const advanceToNextLesson = () => {
+    if (!activeModuleTitle) {
+      setActiveLesson(null);
+      return;
+    }
+
+    const moduleLessons = lessonData[activeModuleTitle];
+    if (!moduleLessons) {
+      setActiveLesson(null);
+      return;
+    }
+
+    // Mark current lesson complete
+    if (activeLesson) {
+      handleCompleteLesson(activeLesson);
+    }
+
+    // Advance within module
+    if (activeLessonIndex < moduleLessons.length - 1) {
+      const nextIdx = activeLessonIndex + 1;
+      setActiveLesson(moduleLessons[nextIdx]);
+      setActiveLessonIndex(nextIdx);
+    } else {
+      // Module done
+      setActiveLesson(null);
+      setActiveModuleTitle(null);
     }
   };
 
@@ -195,58 +314,80 @@ export default function EducationScreen() {
         <View style={styles.progressSection}>
           <View style={styles.progressHeader}>
             <View>
-              <Text style={styles.progressTitle}>{currentWeek.title}</Text>
+              <Text style={styles.progressTitle}>
+                {nextLesson ? `Current: ${nextLesson.moduleTitle}` : 'All Lessons Complete!'}
+              </Text>
               <Text style={styles.progressSubtitle}>
-                Next: {currentWeek.lesson}
+                {nextLesson ? `Next: ${nextLesson.lessonTitle}` : 'Great work!'}
               </Text>
             </View>
-            <Text style={styles.progressPercent}>{currentWeek.progress}%</Text>
+            <Text style={styles.progressPercent}>{overallProgress}%</Text>
           </View>
           <View style={styles.progressBar}>
             <View
               style={[
                 styles.progressFill,
-                { width: `${currentWeek.progress}%` },
+                { width: `${overallProgress}%` },
               ]}
             />
           </View>
-          <TouchableOpacity
-            style={styles.continueButton}
-            onPress={() => openModule('Foundation')}
-          >
-            <Text style={styles.continueButtonText}>Continue Learning</Text>
-            <Ionicons name="arrow-forward" size={20} color="white" />
-          </TouchableOpacity>
+          {nextLesson && (
+            <TouchableOpacity
+              style={styles.continueButton}
+              onPress={() => openModule(nextLesson.moduleTitle)}
+            >
+              <Text style={styles.continueButtonText}>Continue Learning</Text>
+              <Ionicons name="arrow-forward" size={20} color="#3b82f6" />
+            </TouchableOpacity>
+          )}
         </View>
+
+        {/* Loading indicator */}
+        {loadingLessons && (
+          <View style={styles.loadingRow}>
+            <ActivityIndicator size="small" color="#3b82f6" />
+            <Text style={styles.loadingText}>Loading lessons...</Text>
+          </View>
+        )}
 
         {/* Learning Modules */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Learning Modules</Text>
-          {modules.map((module) => (
-            <TouchableOpacity
-              key={module.id}
-              style={styles.moduleCard}
-              onPress={() => openModule(module.title)}
-              disabled={module.lessons === 0}
-            >
-              <View
-                style={[styles.moduleIcon, { backgroundColor: module.color }]}
+          {modules.map((module) => {
+            const completed = getCompletedCountForModule(module.title);
+            return (
+              <TouchableOpacity
+                key={module.id}
+                style={styles.moduleCard}
+                onPress={() => openModule(module.title)}
+                disabled={module.lessons === 0}
               >
-                <Ionicons name={module.icon as any} size={24} color="white" />
-              </View>
-              <View style={styles.moduleInfo}>
-                <Text style={styles.moduleName}>{module.title}</Text>
-                <Text style={styles.moduleDetails}>
-                  {module.lessons > 0 ? `${module.lessons} lessons` : ''} {module.duration}
-                </Text>
-              </View>
-              {module.lessons > 0 ? (
-                <Ionicons name="chevron-forward" size={24} color="#9ca3af" />
-              ) : (
-                <Ionicons name="lock-closed" size={20} color="#9ca3af" />
-              )}
-            </TouchableOpacity>
-          ))}
+                <View
+                  style={[styles.moduleIcon, { backgroundColor: module.color }]}
+                >
+                  <Ionicons name={module.icon as any} size={24} color="white" />
+                </View>
+                <View style={styles.moduleInfo}>
+                  <Text style={styles.moduleName}>{module.title}</Text>
+                  <Text style={styles.moduleDetails}>
+                    {module.lessons > 0
+                      ? `${completed}/${module.lessons} lessons`
+                      : ''}{' '}
+                    {module.duration}
+                  </Text>
+                </View>
+                {module.lessons > 0 ? (
+                  completed === module.lessons && module.lessons > 0 ? (
+                    <Ionicons name="checkmark-circle" size={24} color="#10b981" />
+                  ) : (
+                    <Ionicons name="chevron-forward" size={24} color="#9ca3af" />
+                  )
+                ) : (
+                  <Ionicons name="lock-closed" size={20} color="#9ca3af" />
+                )}
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* Quick Reads */}
@@ -346,17 +487,33 @@ export default function EducationScreen() {
       >
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setActiveLesson(null)}>
+            <TouchableOpacity onPress={() => {
+              // Mark current lesson complete when closing
+              if (activeLesson) {
+                handleCompleteLesson(activeLesson);
+              }
+              setActiveLesson(null);
+              setActiveModuleTitle(null);
+            }}>
               <Ionicons name="close" size={28} color="#1f2937" />
             </TouchableOpacity>
             <Text style={styles.modalHeaderTitle}>
               Lesson {activeLessonIndex + 1}
+              {activeModuleTitle
+                ? ` of ${lessonData[activeModuleTitle]?.length || '?'}`
+                : ''}
             </Text>
             <View style={{ width: 28 }} />
           </View>
           {activeLesson && (
             <ScrollView style={styles.modalContent}>
               <Text style={styles.lessonTitle}>{activeLesson.title}</Text>
+              {isLessonCompleted(activeLesson) && (
+                <View style={styles.completedBadge}>
+                  <Ionicons name="checkmark-circle" size={16} color="#047857" />
+                  <Text style={styles.completedBadgeText}>Completed</Text>
+                </View>
+              )}
               {activeLesson.content.map((paragraph, idx) => (
                 <Text key={idx} style={styles.lessonParagraph}>
                   {paragraph}
@@ -364,23 +521,14 @@ export default function EducationScreen() {
               ))}
               <TouchableOpacity
                 style={styles.lessonNextButton}
-                onPress={() => {
-                  // Try to advance to next lesson in the current module
-                  for (const [, lessons] of Object.entries(lessonData)) {
-                    const currentIdx = lessons.findIndex(
-                      (l) => l.title === activeLesson.title
-                    );
-                    if (currentIdx !== -1 && currentIdx < lessons.length - 1) {
-                      setActiveLesson(lessons[currentIdx + 1]);
-                      setActiveLessonIndex(currentIdx + 1);
-                      return;
-                    }
-                  }
-                  setActiveLesson(null);
-                }}
+                onPress={advanceToNextLesson}
               >
                 <Text style={styles.lessonNextButtonText}>
-                  Next Lesson
+                  {activeModuleTitle &&
+                  lessonData[activeModuleTitle] &&
+                  activeLessonIndex < lessonData[activeModuleTitle].length - 1
+                    ? 'Next Lesson'
+                    : 'Complete Module'}
                 </Text>
                 <Ionicons name="arrow-forward" size={20} color="white" />
               </TouchableOpacity>
@@ -431,6 +579,17 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+  },
+  loadingText: {
+    fontSize: 13,
+    color: '#6b7280',
   },
   progressSection: {
     backgroundColor: '#3b82f6',
@@ -688,6 +847,22 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: 'bold',
     color: 'white',
+  },
+  completedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#d1fae5',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  completedBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#047857',
   },
   articleMetaBadge: {
     backgroundColor: '#dbeafe',
