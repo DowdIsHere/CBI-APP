@@ -243,6 +243,114 @@ export async function removeUserTrigger(triggerName: string): Promise<void> {
 }
 
 // ============================================================
+// PHOTO UPLOAD
+// ============================================================
+
+export async function uploadMealPhoto(
+  imageUri: string,
+  mealId: string
+): Promise<string | null> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const response = await fetch(imageUri);
+    const blob = await response.blob();
+    const fileExt = imageUri.split('.').pop()?.toLowerCase() || 'jpg';
+    const filePath = `${user.id}/${mealId}.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('meal-photos')
+      .upload(filePath, blob, {
+        contentType: `image/${fileExt === 'jpg' ? 'jpeg' : fileExt}`,
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error('Photo upload error:', uploadError);
+      return null;
+    }
+
+    const { data: urlData } = supabase.storage
+      .from('meal-photos')
+      .getPublicUrl(filePath);
+
+    return urlData?.publicUrl || null;
+  } catch (error) {
+    console.error('Photo upload failed:', error);
+    return null;
+  }
+}
+
+// ============================================================
+// LESSONS DATABASE
+// ============================================================
+
+export interface LessonFromDB {
+  id: string;
+  module: string;
+  title: string;
+  content: string[];
+  order_index: number;
+  duration_minutes: number;
+}
+
+export interface LessonProgress {
+  lesson_id: string;
+  completed_at: string;
+}
+
+export async function fetchLessons(): Promise<LessonFromDB[] | null> {
+  try {
+    const { data, error } = await supabase
+      .from('lessons')
+      .select('*')
+      .order('module')
+      .order('order_index');
+
+    if (error || !data || data.length === 0) return null;
+    return data as LessonFromDB[];
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchLessonProgress(): Promise<LessonProgress[]> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data, error } = await supabase
+      .from('user_lesson_progress')
+      .select('lesson_id, completed_at')
+      .eq('user_id', user.id);
+
+    if (error || !data) return [];
+    return data as LessonProgress[];
+  } catch {
+    return [];
+  }
+}
+
+export async function markLessonComplete(lessonId: string): Promise<void> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    await supabase.from('user_lesson_progress').upsert(
+      {
+        user_id: user.id,
+        lesson_id: lessonId,
+        completed_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id,lesson_id' }
+    );
+  } catch (error) {
+    console.error('Failed to mark lesson complete:', error);
+  }
+}
+
+// ============================================================
 // UTILITY: Convert image URI to base64
 // ============================================================
 

@@ -40,6 +40,7 @@ export async function getMeals(): Promise<Meal[]> {
           items: row.items,
           totalScore: row.total_score,
           method: row.method,
+          photo_url: row.photo_url || undefined,
         }));
         // Cache locally
         await AsyncStorage.setItem(MEALS_KEY, JSON.stringify(meals));
@@ -72,6 +73,7 @@ export async function saveMeal(meal: Meal): Promise<void> {
         items: meal.items,
         total_score: meal.totalScore,
         method: meal.method,
+        photo_url: meal.photo_url || null,
       });
     }
   } catch {

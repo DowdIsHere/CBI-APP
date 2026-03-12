@@ -1,19 +1,26 @@
 import 'react-native-url-polyfill/auto';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { NavigationContainer } from '@react-navigation/native';
+import {
+  NavigationContainer,
+  NavigationContainerRef,
+} from '@react-navigation/native';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { useEffect, useState, useCallback } from 'react';
+import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import AuthScreen from './src/screens/AuthScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
+import { initializeNotifications } from './src/services/notifications';
 
 const ONBOARDING_KEY = 'cbi_onboarding_complete';
 
 function RootNavigator() {
   const { user, loading } = useAuth();
   const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
+  const navigationRef = useRef<NavigationContainerRef<any>>(null);
+  const notificationResponseListener = useRef<Notifications.Subscription>();
 
   useEffect(() => {
     if (user) {
@@ -23,6 +30,38 @@ function RootNavigator() {
     } else {
       setOnboardingComplete(null);
     }
+  }, [user]);
+
+  // Initialize notifications when a user is authenticated
+  useEffect(() => {
+    if (!user) return;
+
+    initializeNotifications().catch((err) =>
+      console.warn('Failed to initialize notifications:', err),
+    );
+  }, [user]);
+
+  // Handle notification taps - navigate to the appropriate screen
+  useEffect(() => {
+    if (!user) return;
+
+    notificationResponseListener.current =
+      Notifications.addNotificationResponseReceivedListener((response) => {
+        const data = response.notification.request.content.data;
+        const screen = data?.screen as string | undefined;
+
+        if (screen && navigationRef.current?.isReady()) {
+          navigationRef.current.navigate(screen);
+        }
+      });
+
+    return () => {
+      if (notificationResponseListener.current) {
+        Notifications.removeNotificationSubscription(
+          notificationResponseListener.current,
+        );
+      }
+    };
   }, [user]);
 
   const handleOnboardingComplete = useCallback(() => {
@@ -54,7 +93,7 @@ function RootNavigator() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <AppNavigator />
       <StatusBar style="light" />
     </NavigationContainer>

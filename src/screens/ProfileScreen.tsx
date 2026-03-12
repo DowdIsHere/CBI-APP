@@ -16,6 +16,11 @@ import { useFocusEffect } from '@react-navigation/native';
 import { getProfile, saveProfile, getMeals, getStreak } from '../utils/storage';
 import { useAuth } from '../contexts/AuthContext';
 import { UserProfile } from '../types';
+import {
+  getNotificationPreferences,
+  updateNotificationSettings,
+  NotificationPreferences,
+} from '../services/notifications';
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
@@ -52,6 +57,10 @@ export default function ProfileScreen() {
 
     const s = await getStreak();
     setStreakCount(s);
+
+    const notifPrefs = await getNotificationPreferences();
+    setNotificationsEnabled(notifPrefs.notificationsEnabled);
+    setRemindersEnabled(notifPrefs.mealRemindersEnabled);
   };
 
   const openEditModal = (field: 'name' | 'email' | 'condition') => {
@@ -87,6 +96,27 @@ export default function ProfileScreen() {
     };
     await saveProfile(updated);
     setProfile(updated);
+  };
+
+  const handleToggleNotifications = async (enabled: boolean) => {
+    setNotificationsEnabled(enabled);
+    const newPrefs: NotificationPreferences = {
+      notificationsEnabled: enabled,
+      mealRemindersEnabled: enabled ? remindersEnabled : false,
+    };
+    if (!enabled) {
+      setRemindersEnabled(false);
+    }
+    await updateNotificationSettings(newPrefs);
+  };
+
+  const handleToggleReminders = async (enabled: boolean) => {
+    setRemindersEnabled(enabled);
+    const newPrefs: NotificationPreferences = {
+      notificationsEnabled: notificationsEnabled,
+      mealRemindersEnabled: enabled,
+    };
+    await updateNotificationSettings(newPrefs);
   };
 
   const displayName = profile.name || 'Set Your Name';
@@ -228,7 +258,7 @@ export default function ProfileScreen() {
               </View>
               <Switch
                 value={notificationsEnabled}
-                onValueChange={setNotificationsEnabled}
+                onValueChange={handleToggleNotifications}
                 trackColor={{ false: '#d1d5db', true: '#93c5fd' }}
                 thumbColor={notificationsEnabled ? '#3b82f6' : '#f3f4f6'}
               />
@@ -243,7 +273,8 @@ export default function ProfileScreen() {
               </View>
               <Switch
                 value={remindersEnabled}
-                onValueChange={setRemindersEnabled}
+                onValueChange={handleToggleReminders}
+                disabled={!notificationsEnabled}
                 trackColor={{ false: '#d1d5db', true: '#c4b5fd' }}
                 thumbColor={remindersEnabled ? '#8b5cf6' : '#f3f4f6'}
               />

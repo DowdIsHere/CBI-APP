@@ -26,6 +26,7 @@ export interface Meal {
   items: DetectedFood[];
   totalScore: number;
   method: 'photo' | 'batch' | 'barcode' | 'manual';
+  photo_url?: string;
 }
 
 export interface UserProfile {

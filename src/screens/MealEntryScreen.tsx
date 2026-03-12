@@ -25,6 +25,7 @@ import {
   barcodeResultToDetectedFood,
   imageUriToBase64,
   getUserTriggers,
+  uploadMealPhoto,
 } from '../services/api';
 
 export default function MealEntryScreen({ route, navigation }: any) {
@@ -36,6 +37,7 @@ export default function MealEntryScreen({ route, navigation }: any) {
   const [detectedFoods, setDetectedFoods] = useState<DetectedFood[]>([]);
   const [cameraActive, setCameraActive] = useState(false);
   const [mealName, setMealName] = useState('');
+  const [capturedPhotoUri, setCapturedPhotoUri] = useState<string | null>(null);
 
   // Manual entry state
   const [manualFoodName, setManualFoodName] = useState('');
@@ -118,6 +120,7 @@ export default function MealEntryScreen({ route, navigation }: any) {
       });
 
       if (!result.canceled && result.assets?.[0]?.uri) {
+        setCapturedPhotoUri(result.assets[0].uri);
         await handlePhotoAnalysis(result.assets[0].uri);
       } else {
         setInputMethod(null);
@@ -271,14 +274,24 @@ export default function MealEntryScreen({ route, navigation }: any) {
       return sum + food.score;
     }, 0);
 
+    const mealId = Date.now().toString();
+
+    // Upload photo if one was captured
+    let photoUrl: string | undefined;
+    if (capturedPhotoUri && (inputMethod === 'photo' || inputMethod === 'batch')) {
+      const url = await uploadMealPhoto(capturedPhotoUri, mealId);
+      if (url) photoUrl = url;
+    }
+
     const meal = {
-      id: Date.now().toString(),
+      id: mealId,
       name: mealName.trim() || getMealNameFromTime(),
       date: getTodayDate(),
       time: getTimeString(),
       items: foods,
       totalScore,
       method: inputMethod as 'photo' | 'batch' | 'barcode' | 'manual',
+      photo_url: photoUrl,
     };
 
     await saveMeal(meal);
@@ -318,6 +331,7 @@ export default function MealEntryScreen({ route, navigation }: any) {
     setManualFoodName('');
     setManualPortion('');
     setMealName('');
+    setCapturedPhotoUri(null);
   };
 
   if (cameraActive && hasPermission) {
