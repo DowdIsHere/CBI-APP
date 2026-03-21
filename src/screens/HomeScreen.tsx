@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,23 +8,43 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+import { getTodayMeals, getWeekMeals, getStreak, getProfile } from '../utils/storage';
+import { useAuth } from '../contexts/AuthContext';
+import { Meal } from '../types';
 
 export default function HomeScreen({ navigation }: any) {
-  const [notifications] = useState(3);
+  const { user } = useAuth();
+  const [notifications] = useState(0);
+  const [todayMeals, setTodayMeals] = useState<Meal[]>([]);
+  const [todayScore, setTodayScore] = useState(0);
+  const [weekAverage, setWeekAverage] = useState(0);
+  const [streak, setStreakCount] = useState(0);
+  const [userName, setUserName] = useState('');
 
-  const userStats = {
-    todayScore: 14,
-    weekAverage: 11,
-    streak: 7,
-    energyLevel: 8,
-    weightChange: -2.5,
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [])
+  );
+
+  const loadData = async () => {
+    const meals = await getTodayMeals();
+    setTodayMeals(meals);
+
+    const score = meals.reduce((sum, m) => sum + m.totalScore, 0);
+    setTodayScore(score);
+
+    const weekMeals = await getWeekMeals();
+    const days = new Set(weekMeals.map((m) => m.date)).size;
+    setWeekAverage(days > 0 ? Math.round(weekMeals.reduce((s, m) => s + m.totalScore, 0) / days) : 0);
+
+    const s = await getStreak();
+    setStreakCount(s);
+
+    const profile = await getProfile();
+    setUserName(profile.name || user?.user_metadata?.full_name || '');
   };
-
-  const recentMeals = [
-    { name: 'Breakfast', time: '8:30 AM', score: 8, items: 3 },
-    { name: 'Lunch', time: '12:45 PM', score: 12, items: 4 },
-    { name: 'Snack', time: '3:15 PM', score: 4, items: 2 },
-  ];
 
   const quickActions = [
     {
@@ -57,23 +77,55 @@ export default function HomeScreen({ navigation }: any) {
     },
   ];
 
-  const insights = [
-    {
-      type: 'success',
-      message: 'Your energy levels are up 60% this week!',
-      icon: 'flash',
-    },
-    {
+  const getInsights = () => {
+    const insights: { type: string; message: string; icon: string }[] = [];
+
+    if (streak >= 7) {
+      insights.push({
+        type: 'success',
+        message: `Amazing ${streak}-day streak! Keep it up!`,
+        icon: 'flash',
+      });
+    } else if (streak >= 3) {
+      insights.push({
+        type: 'success',
+        message: `${streak}-day streak! You're building momentum.`,
+        icon: 'flash',
+      });
+    }
+
+    if (todayScore >= 10) {
+      insights.push({
+        type: 'success',
+        message: `Great day! Your score of +${todayScore} is excellent for ENS support.`,
+        icon: 'checkmark-circle',
+      });
+    } else if (todayMeals.length > 0) {
+      insights.push({
+        type: 'tip',
+        message: 'Add more omega-3 rich foods like salmon or sardines to boost your score.',
+        icon: 'bulb',
+      });
+    }
+
+    if (todayMeals.length === 0) {
+      insights.push({
+        type: 'tip',
+        message: "You haven't logged any meals today. Start logging to track your ENS health!",
+        icon: 'bulb',
+      });
+    }
+
+    insights.push({
       type: 'tip',
-      message: 'Add more sulforaphane - only 1 cruciferous serving yesterday',
-      icon: 'bulb',
-    },
-    {
-      type: 'warning',
-      message: 'Detected nightshades in 2 meals - may trigger symptoms',
-      icon: 'warning',
-    },
-  ];
+      message: 'Try adding cruciferous vegetables for sulforaphane - great for cellular repair.',
+      icon: 'leaf',
+    });
+
+    return insights;
+  };
+
+  const insights = getInsights();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -86,7 +138,7 @@ export default function HomeScreen({ navigation }: any) {
             </View>
             <View style={styles.headerTextContainer}>
               <Text style={styles.headerTitle}>
-                Cellular Biology Intelligence
+                {userName ? `Welcome, ${userName}` : 'Cellular Biology Intelligence'}
               </Text>
               <Text style={styles.headerSubtitle}>
                 Enteric Nervous System Support
@@ -109,19 +161,23 @@ export default function HomeScreen({ navigation }: any) {
         <View style={styles.statsContainer}>
           <View style={[styles.statCard, { backgroundColor: '#10b981' }]}>
             <Text style={styles.statLabel}>Today's Score</Text>
-            <Text style={styles.statValue}>+{userStats.todayScore}</Text>
+            <Text style={styles.statValue}>
+              {todayScore >= 0 ? '+' : ''}{todayScore}
+            </Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: '#3b82f6' }]}>
             <Text style={styles.statLabel}>Week Average</Text>
-            <Text style={styles.statValue}>+{userStats.weekAverage}</Text>
+            <Text style={styles.statValue}>
+              {weekAverage >= 0 ? '+' : ''}{weekAverage}
+            </Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: '#f59e0b' }]}>
             <Text style={styles.statLabel}>Streak</Text>
-            <Text style={styles.statValue}>{userStats.streak} 🔥</Text>
+            <Text style={styles.statValue}>{streak} days</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: '#8b5cf6' }]}>
-            <Text style={styles.statLabel}>Energy</Text>
-            <Text style={styles.statValue}>{userStats.energyLevel}/10</Text>
+            <Text style={styles.statLabel}>Meals Today</Text>
+            <Text style={styles.statValue}>{todayMeals.length}</Text>
           </View>
         </View>
 
@@ -189,45 +245,57 @@ export default function HomeScreen({ navigation }: any) {
         {/* Recent Meals */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Today's Meals</Text>
-          {recentMeals.map((meal, idx) => (
-            <TouchableOpacity key={idx} style={styles.mealCard}>
-              <View>
-                <Text style={styles.mealName}>{meal.name}</Text>
-                <Text style={styles.mealDetails}>
-                  {meal.time} • {meal.items} items
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.scorebadge,
-                  {
-                    backgroundColor:
-                      meal.score >= 10
-                        ? '#d1fae5'
-                        : meal.score >= 5
-                        ? '#dbeafe'
-                        : '#fef3c7',
-                  },
-                ]}
-              >
-                <Text
+          {todayMeals.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="restaurant-outline" size={48} color="#d1d5db" />
+              <Text style={styles.emptyStateText}>
+                No meals logged today yet
+              </Text>
+              <Text style={styles.emptyStateSubtext}>
+                Tap below to start tracking
+              </Text>
+            </View>
+          ) : (
+            todayMeals.map((meal) => (
+              <TouchableOpacity key={meal.id} style={styles.mealCard}>
+                <View>
+                  <Text style={styles.mealName}>{meal.name}</Text>
+                  <Text style={styles.mealDetails}>
+                    {meal.time} - {meal.items.length} item{meal.items.length !== 1 ? 's' : ''}
+                  </Text>
+                </View>
+                <View
                   style={[
-                    styles.scoreBadgeText,
+                    styles.scoreBadge,
                     {
-                      color:
-                        meal.score >= 10
-                          ? '#047857'
-                          : meal.score >= 5
-                          ? '#1e40af'
-                          : '#92400e',
+                      backgroundColor:
+                        meal.totalScore >= 5
+                          ? '#d1fae5'
+                          : meal.totalScore >= 0
+                          ? '#dbeafe'
+                          : '#fee2e2',
                     },
                   ]}
                 >
-                  +{meal.score}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+                  <Text
+                    style={[
+                      styles.scoreBadgeText,
+                      {
+                        color:
+                          meal.totalScore >= 5
+                            ? '#047857'
+                            : meal.totalScore >= 0
+                            ? '#1e40af'
+                            : '#dc2626',
+                      },
+                    ]}
+                  >
+                    {meal.totalScore >= 0 ? '+' : ''}{meal.totalScore}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))
+          )}
           <TouchableOpacity
             style={styles.addMealButton}
             onPress={() => navigation.navigate('LogMeal')}
@@ -251,7 +319,7 @@ export default function HomeScreen({ navigation }: any) {
               style={styles.continueButton}
               onPress={() => navigation.navigate('Learn')}
             >
-              <Text style={styles.continueButtonText}>Continue Lesson →</Text>
+              <Text style={styles.continueButtonText}>Continue Lesson</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -412,6 +480,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#1f2937',
     fontWeight: '600',
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6b7280',
+    marginTop: 12,
+  },
+  emptyStateSubtext: {
+    fontSize: 13,
+    color: '#9ca3af',
+    marginTop: 4,
   },
   mealCard: {
     backgroundColor: 'white',
