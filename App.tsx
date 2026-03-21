@@ -8,6 +8,7 @@ import {
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import AuthScreen from './src/screens/AuthScreen';
@@ -32,18 +33,18 @@ function RootNavigator() {
     }
   }, [user]);
 
-  // Initialize notifications when a user is authenticated
+  // Initialize notifications when a user is authenticated (native only)
   useEffect(() => {
-    if (!user) return;
+    if (!user || Platform.OS === 'web') return;
 
     initializeNotifications().catch((err) =>
       console.warn('Failed to initialize notifications:', err),
     );
   }, [user]);
 
-  // Handle notification taps - navigate to the appropriate screen
+  // Handle notification taps - navigate to the appropriate screen (native only)
   useEffect(() => {
-    if (!user) return;
+    if (!user || Platform.OS === 'web') return;
 
     notificationResponseListener.current =
       Notifications.addNotificationResponseReceivedListener((response) => {
