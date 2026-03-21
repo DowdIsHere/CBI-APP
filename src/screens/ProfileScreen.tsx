@@ -14,7 +14,7 @@ import {
   Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getProfile, saveProfile, getMeals, getStreak } from '../utils/storage';
 import { useAuth } from '../contexts/AuthContext';
@@ -110,6 +110,7 @@ const FAQ_ITEMS = [
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
+  const navigation = useNavigation<any>();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [remindersEnabled, setRemindersEnabled] = useState(true);
   const [profile, setProfile] = useState<UserProfile>({
@@ -653,7 +654,7 @@ export default function ProfileScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.aboutLinkRow}
-                onPress={() => Linking.openURL('https://thedowdprotocol.com/privacy')}
+                onPress={() => navigation.navigate('PrivacyPolicy')}
               >
                 <Ionicons name="shield-outline" size={20} color="#3b82f6" />
                 <Text style={styles.aboutLinkText}>Privacy Policy</Text>
@@ -661,7 +662,7 @@ export default function ProfileScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.aboutLinkRow}
-                onPress={() => Linking.openURL('https://thedowdprotocol.com/terms')}
+                onPress={() => navigation.navigate('TermsOfService')}
               >
                 <Ionicons name="document-text-outline" size={20} color="#3b82f6" />
                 <Text style={styles.aboutLinkText}>Terms of Service</Text>

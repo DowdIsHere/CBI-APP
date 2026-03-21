@@ -20,7 +20,7 @@ function RootNavigator() {
   const { user, loading } = useAuth();
   const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
   const navigationRef = useRef<NavigationContainerRef<any>>(null);
-  const notificationResponseListener = useRef<Notifications.Subscription>();
+  const notificationResponseListener = useRef<Notifications.Subscription>(null);
 
   useEffect(() => {
     if (user) {
@@ -57,9 +57,7 @@ function RootNavigator() {
 
     return () => {
       if (notificationResponseListener.current) {
-        Notifications.removeNotificationSubscription(
-          notificationResponseListener.current,
-        );
+        notificationResponseListener.current.remove();
       }
     };
   }, [user]);

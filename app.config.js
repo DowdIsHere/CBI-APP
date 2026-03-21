@@ -17,12 +17,42 @@ export default {
       supportsTablet: true,
       bundleIdentifier: 'com.cbi.dowdprotocol',
       jsEngine: 'jsc',
+      buildNumber: '1',
       infoPlist: {
         NSCameraUsageDescription:
           'This app needs access to your camera to take photos of your meals for analysis.',
         NSPhotoLibraryUsageDescription:
           'This app needs access to your photo library to select meal photos for analysis.',
         ITSAppUsesNonExemptEncryption: false,
+        NSUserTrackingUsageDescription:
+          'This identifier will be used to deliver personalized nutrition recommendations.',
+      },
+      privacyManifests: {
+        NSPrivacyAccessedAPITypes: [
+          {
+            NSPrivacyAccessedAPIType:
+              'NSPrivacyAccessedAPICategoryUserDefaults',
+            NSPrivacyAccessedAPITypeReasons: ['CA92.1'],
+          },
+        ],
+        NSPrivacyCollectedDataTypes: [
+          {
+            NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypeHealthData',
+            NSPrivacyCollectedDataTypeLinked: false,
+            NSPrivacyCollectedDataTypeTracking: false,
+            NSPrivacyCollectedDataTypePurposes: [
+              'NSPrivacyCollectedDataTypePurposeAppFunctionality',
+            ],
+          },
+          {
+            NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypePhotos',
+            NSPrivacyCollectedDataTypeLinked: true,
+            NSPrivacyCollectedDataTypeTracking: false,
+            NSPrivacyCollectedDataTypePurposes: [
+              'NSPrivacyCollectedDataTypePurposeAppFunctionality',
+            ],
+          },
+        ],
       },
     },
     android: {
@@ -31,6 +61,7 @@ export default {
         backgroundColor: '#1e3a8a',
       },
       package: 'com.cbi.dowdprotocol',
+      versionCode: 1,
       permissions: [
         'android.permission.CAMERA',
         'android.permission.READ_EXTERNAL_STORAGE',
@@ -56,6 +87,13 @@ export default {
         {
           photosPermission:
             'Allow CBI to access your photos to select meal images for analysis.',
+        },
+      ],
+      [
+        'expo-notifications',
+        {
+          icon: './assets/icon.png',
+          color: '#1e3a8a',
         },
       ],
     ],
