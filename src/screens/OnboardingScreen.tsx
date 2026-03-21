@@ -549,7 +549,7 @@ const styles = StyleSheet.create({
   // Bottom controls
   bottomControls: {
     paddingHorizontal: 24,
-    paddingBottom: Platform.OS === 'ios' ? 16 : 24,
+    paddingBottom: Platform.OS === 'web' ? 80 : Platform.OS === 'ios' ? 16 : 24,
     paddingTop: 12,
     backgroundColor: '#f9fafb',
     borderTopWidth: 1,

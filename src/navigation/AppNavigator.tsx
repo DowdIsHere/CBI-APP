@@ -1,4 +1,5 @@
 import React from 'react';
+import { Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -38,6 +39,7 @@ function TabNavigator() {
         },
         tabBarActiveTintColor: '#2563eb',
         tabBarInactiveTintColor: 'gray',
+        ...(Platform.OS === 'web' ? { tabBarStyle: { paddingBottom: 60 } } : {}),
         headerStyle: {
           backgroundColor: '#1e3a8a',
         },
