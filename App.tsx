@@ -10,6 +10,7 @@ import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
+import { AppProvider } from './src/data/AppContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import AuthScreen from './src/screens/AuthScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
@@ -102,7 +103,9 @@ function RootNavigator() {
 export default function App() {
   return (
     <AuthProvider>
-      <RootNavigator />
+      <AppProvider>
+        <RootNavigator />
+      </AppProvider>
     </AuthProvider>
   );
 }
