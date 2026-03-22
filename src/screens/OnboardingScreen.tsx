@@ -4,7 +4,7 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Dimensions,
+  useWindowDimensions,
   TouchableOpacity,
   TextInput,
   SafeAreaView,
@@ -17,8 +17,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { saveProfile, getProfile } from '../utils/storage';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const ONBOARDING_KEY = 'cbi_onboarding_complete';
 
 const HEALTH_CONDITIONS = [
@@ -37,8 +35,10 @@ interface OnboardingScreenProps {
 }
 
 export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
+  const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = useWindowDimensions();
   const scrollRef = useRef<ScrollView>(null);
   const [currentPage, setCurrentPage] = useState(0);
+  const [bottomHeight, setBottomHeight] = useState(50);
 
   // Page 4 form state
   const [name, setName] = useState('');
@@ -320,14 +320,14 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
         onMomentumScrollEnd={handleScroll}
         scrollEventThrottle={16}
       >
-        <View style={{ width: SCREEN_WIDTH }}>{renderPage1()}</View>
-        <View style={{ width: SCREEN_WIDTH }}>{renderPage2()}</View>
-        <View style={{ width: SCREEN_WIDTH }}>{renderPage3()}</View>
-        <View style={{ width: SCREEN_WIDTH }}>{renderPage4()}</View>
+        <View style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT - bottomHeight }}>{renderPage1()}</View>
+        <View style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT - bottomHeight }}>{renderPage2()}</View>
+        <View style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT - bottomHeight }}>{renderPage3()}</View>
+        <View style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT - bottomHeight }}>{renderPage4()}</View>
       </ScrollView>
 
       {/* Bottom Controls */}
-      <View style={styles.bottomControls}>
+      <View style={styles.bottomControls} onLayout={(e) => setBottomHeight(e.nativeEvent.layout.height)}>
         {renderDots()}
         <View style={styles.buttonRow}>
           {currentPage > 0 ? (
