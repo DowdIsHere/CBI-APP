@@ -39,7 +39,7 @@ function TabNavigator() {
         },
         tabBarActiveTintColor: '#2563eb',
         tabBarInactiveTintColor: 'gray',
-        ...(Platform.OS === 'web' ? { tabBarStyle: { paddingBottom: 100 } } : {}),
+        ...(Platform.OS === 'web' ? { tabBarStyle: { paddingBottom: 4 } } : {}),
         headerStyle: {
           backgroundColor: '#1e3a8a',
         },
