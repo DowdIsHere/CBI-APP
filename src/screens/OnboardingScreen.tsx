@@ -548,18 +548,16 @@ const styles = StyleSheet.create({
   },
   // Bottom controls
   bottomControls: {
-    paddingHorizontal: 24,
-    paddingBottom: 8,
-    paddingTop: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 2,
+    paddingTop: 4,
     backgroundColor: '#f9fafb',
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
   },
   dotsContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 8,
-    marginBottom: 16,
+    marginBottom: 4,
   },
   dot: {
     width: 8,
@@ -580,8 +578,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
     minWidth: 80,
   },
   backButtonText: {
@@ -594,8 +592,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     backgroundColor: '#2563eb',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
+    paddingVertical: 8,
+    paddingHorizontal: 18,
     borderRadius: 12,
   },
   getStartedButton: {
@@ -603,8 +601,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     backgroundColor: '#2563eb',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
+    paddingVertical: 8,
+    paddingHorizontal: 18,
     borderRadius: 12,
   },
   nextButtonText: {
