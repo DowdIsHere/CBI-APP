@@ -9,11 +9,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert,
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 
 type AuthMode = 'signin' | 'signup';
 
@@ -24,32 +24,35 @@ export default function AuthScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const { signIn, signUp } = useAuth();
+  const { showError, showSuccess } = useToast();
 
   const validateForm = (): boolean => {
+    setFormError(null);
     if (!email.trim()) {
-      Alert.alert('Error', 'Please enter your email address.');
+      setFormError('Please enter your email address.');
       return false;
     }
 
     if (!email.includes('@') || !email.includes('.')) {
-      Alert.alert('Error', 'Please enter a valid email address.');
+      setFormError('Please enter a valid email address.');
       return false;
     }
 
     if (!password) {
-      Alert.alert('Error', 'Please enter your password.');
+      setFormError('Please enter your password.');
       return false;
     }
 
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters.');
+      setFormError('Password must be at least 6 characters.');
       return false;
     }
 
     if (mode === 'signup' && password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match.');
+      setFormError('Passwords do not match.');
       return false;
     }
 
@@ -67,10 +70,10 @@ export default function AuthScreen() {
         : await signUp(email.trim(), password);
 
       if (!result.success) {
-        Alert.alert('Error', result.error || 'Authentication failed.');
+        showError(result.error || 'Authentication failed.');
       } else if (result.error) {
         // Success with message (e.g., verification email sent)
-        Alert.alert('Success', result.error);
+        showSuccess(result.error);
       }
     } finally {
       setIsLoading(false);
@@ -81,6 +84,7 @@ export default function AuthScreen() {
     setMode(mode === 'signin' ? 'signup' : 'signin');
     setPassword('');
     setConfirmPassword('');
+    setFormError(null);
   };
 
   return (
@@ -153,6 +157,10 @@ export default function AuthScreen() {
                   autoCapitalize="none"
                 />
               </View>
+            )}
+
+            {formError && (
+              <Text style={styles.formError}>{formError}</Text>
             )}
 
             <TouchableOpacity
@@ -243,6 +251,12 @@ const styles = StyleSheet.create({
   },
   eyeIcon: {
     padding: 4,
+  },
+  formError: {
+    color: '#ef4444',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 12,
   },
   submitButton: {
     backgroundColor: '#3b82f6',

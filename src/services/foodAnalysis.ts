@@ -1,4 +1,4 @@
-import { readAsStringAsync } from 'expo-file-system';
+import { Platform } from 'react-native';
 import { API_CONFIG } from './config';
 import { FoodItem } from '../data/types';
 import { checkNetworkConnection, ErrorMessages } from './errorHandling';
@@ -13,13 +13,35 @@ interface AnalysisResult {
 // Generate unique ID
 const generateId = () => Date.now().toString() + Math.random().toString(36).substr(2, 9);
 
-// Convert image URI to base64
+// Convert image URI to base64 (works on both native and web)
 async function imageToBase64(uri: string): Promise<string> {
   try {
-    const base64 = await readAsStringAsync(uri, {
-      encoding: 'base64',
-    });
-    return base64;
+    if (Platform.OS === 'web') {
+      // On web, image URIs from ImagePicker are blob/object URLs or data URIs
+      if (uri.startsWith('data:')) {
+        // Already a data URI - extract the base64 part
+        return uri.split(',')[1];
+      }
+      // Fetch the blob and convert to base64
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const result = reader.result as string;
+          resolve(result.split(',')[1]);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } else {
+      // On native, use expo-file-system
+      const { readAsStringAsync } = await import('expo-file-system');
+      const base64 = await readAsStringAsync(uri, {
+        encoding: 'base64' as any,
+      });
+      return base64;
+    }
   } catch (error) {
     console.error('Error converting image to base64:', error);
     throw error;
@@ -62,6 +84,19 @@ If no food is detected, return an empty array: []`;
 
 // Analyze food photo using Claude Vision
 export async function analyzePhoto(imageUri: string): Promise<AnalysisResult> {
+  // Try backend API first (keeps API key server-side)
+  try {
+    const { analyzeFood } = await import('./api');
+    const base64Image = await imageToBase64(imageUri);
+    const mediaType = getMediaType(imageUri);
+    const backendResult = await analyzeFood(base64Image, mediaType);
+    if (backendResult.success && backendResult.foods.length > 0) {
+      return { success: true, foods: backendResult.foods };
+    }
+  } catch (e) {
+    console.log('Backend analysis unavailable, trying local fallback');
+  }
+
   if (!API_CONFIG.ANTHROPIC_API_KEY) {
     // Return demo data if no API key configured
     console.log('No API key configured, using demo analysis');

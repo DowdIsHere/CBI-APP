@@ -5,36 +5,44 @@ import {
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
-  Alert,
   ActivityIndicator,
   ScrollView,
   TextInput,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Camera, CameraView } from 'expo-camera';
-import { BarcodeScanningResult } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { useAppData } from '../data/AppContext';
+import { useToast } from '../contexts/ToastContext';
 import { FoodItem } from '../data/types';
 import { analyzePhoto, analyzeText, lookupBarcode } from '../services/foodAnalysis';
+
+const isWeb = Platform.OS === 'web';
 
 type InputMethod = 'camera' | 'barcode' | 'type' | 'batch' | null;
 
 export default function LogScreen() {
   const { addMeal } = useAppData();
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const { showError, showSuccess } = useToast();
+  const [hasPermission, setHasPermission] = useState<boolean | null>(isWeb ? true : null);
   const [analyzing, setAnalyzing] = useState(false);
   const [detectedFoods, setDetectedFoods] = useState<FoodItem[]>([]);
-  const [inputMethod, setInputMethod] = useState<InputMethod>('camera');
+  const [inputMethod, setInputMethod] = useState<InputMethod>(isWeb ? 'type' : 'camera');
   const [manualInput, setManualInput] = useState('');
   const [barcodeScanning, setBarcodeScanning] = useState(false);
   const [mealName, setMealName] = useState('');
 
   useEffect(() => {
+    if (isWeb) return; // Skip camera permissions on web
     (async () => {
-      const { status: cameraStatus } = await Camera.requestCameraPermissionsAsync();
-      const { status: libraryStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      setHasPermission(cameraStatus === 'granted');
+      try {
+        const { Camera } = await import('expo-camera');
+        const { status: cameraStatus } = await Camera.requestCameraPermissionsAsync();
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+        setHasPermission(cameraStatus === 'granted');
+      } catch {
+        setHasPermission(false);
+      }
     })();
   }, []);
 
@@ -54,11 +62,7 @@ export default function LogScreen() {
       if (analysis.success && analysis.foods.length > 0) {
         setDetectedFoods(analysis.foods);
       } else {
-        Alert.alert(
-          'Analysis Failed',
-          analysis.error || 'Could not identify foods in the image. Try again or enter manually.',
-          [{ text: 'OK' }]
-        );
+        showError(analysis.error || 'Could not identify foods in the image. Try again or enter manually.');
       }
     }
   };
@@ -68,7 +72,7 @@ export default function LogScreen() {
     setInputMethod('barcode');
   };
 
-  const handleBarCodeScanned = async ({ type, data }: BarcodeScanningResult) => {
+  const handleBarCodeScanned = async ({ type, data }: { type: string; data: string }) => {
     setBarcodeScanning(false);
     setInputMethod('camera');
     setAnalyzing(true);
@@ -79,11 +83,7 @@ export default function LogScreen() {
     if (result.success && result.foods.length > 0) {
       setDetectedFoods(result.foods);
     } else {
-      Alert.alert(
-        'Product Not Found',
-        'This barcode was not found in the database. Try taking a photo or entering manually.',
-        [{ text: 'OK' }]
-      );
+      showError('This barcode was not found in the database. Try taking a photo or entering manually.');
     }
   };
 
@@ -117,11 +117,7 @@ export default function LogScreen() {
       if (allFoods.length > 0) {
         setDetectedFoods(allFoods);
       } else {
-        Alert.alert(
-          'Analysis Failed',
-          'Could not identify foods in the selected images.',
-          [{ text: 'OK' }]
-        );
+        showError('Could not identify foods in the selected images.');
       }
     }
   };
@@ -137,13 +133,9 @@ export default function LogScreen() {
     if (result.success && result.foods.length > 0) {
       setDetectedFoods(result.foods);
       setManualInput('');
-      setInputMethod('camera');
+      setInputMethod(isWeb ? 'type' : 'camera');
     } else {
-      Alert.alert(
-        'Analysis Failed',
-        result.error || 'Could not analyze the food description.',
-        [{ text: 'OK' }]
-      );
+      showError(result.error || 'Could not analyze the food description.');
     }
   };
 
@@ -168,20 +160,10 @@ export default function LogScreen() {
       totalScore,
     });
 
-    Alert.alert(
-      'Meal Saved!',
-      `Score: +${totalScore}. Great job supporting your ENS!`,
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            setDetectedFoods([]);
-            setInputMethod('camera');
-            setMealName('');
-          },
-        },
-      ]
-    );
+    showSuccess(`Meal saved! Score: +${totalScore}. Great job supporting your ENS!`);
+    setDetectedFoods([]);
+    setInputMethod(isWeb ? 'type' : 'camera');
+    setMealName('');
   };
 
   const removeFood = (foodId: string) => {
@@ -190,17 +172,40 @@ export default function LogScreen() {
 
   const reset = () => {
     setDetectedFoods([]);
-    setInputMethod('camera');
+    setInputMethod(isWeb ? 'type' : 'camera');
     setBarcodeScanning(false);
     setManualInput('');
     setMealName('');
   };
 
-  // Barcode Scanner View
-  if (barcodeScanning && hasPermission) {
+  const handlePickFromLibrary = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setAnalyzing(true);
+      const analysis = await analyzePhoto(result.assets[0].uri);
+      setAnalyzing(false);
+
+      if (analysis.success && analysis.foods.length > 0) {
+        setDetectedFoods(analysis.foods);
+      } else {
+        showError(analysis.error || 'Could not identify foods in the image.');
+      }
+    }
+  };
+
+  // Barcode Scanner View - only available on native
+  if (barcodeScanning && hasPermission && !isWeb) {
+    // CameraView is imported dynamically for native only
+    const CameraViewComponent = require('expo-camera').CameraView;
     return (
       <View style={styles.cameraContainer}>
-        <CameraView
+        <CameraViewComponent
           style={styles.camera}
           facing="back"
           onBarcodeScanned={handleBarCodeScanned}
@@ -233,7 +238,7 @@ export default function LogScreen() {
               <Text style={styles.scanText}>Position barcode in frame</Text>
             </View>
           </View>
-        </CameraView>
+        </CameraViewComponent>
       </View>
     );
   }
@@ -243,7 +248,7 @@ export default function LogScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.typeHeader}>
-          <TouchableOpacity onPress={() => setInputMethod('camera')}>
+          <TouchableOpacity onPress={() => setInputMethod(isWeb ? 'type' : 'camera')}>
             <Ionicons name="arrow-back" size={24} color="#1f2937" />
           </TouchableOpacity>
           <Text style={styles.typeTitle}>Type Your Meal</Text>
@@ -367,7 +372,44 @@ export default function LogScreen() {
     );
   }
 
-  // Main Camera View
+  // Web-friendly main view
+  if (isWeb) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ScrollView style={styles.webMainScroll} contentContainerStyle={styles.webMainContent}>
+          <View style={styles.webHeader}>
+            <Ionicons name="restaurant" size={48} color="#10b981" />
+            <Text style={styles.webTitle}>Log Your Meal</Text>
+            <Text style={styles.webSubtitle}>Choose how to enter your food</Text>
+          </View>
+
+          <TouchableOpacity style={styles.webOptionCard} onPress={handleTypePress}>
+            <View style={[styles.webOptionIcon, { backgroundColor: '#dbeafe' }]}>
+              <Ionicons name="create-outline" size={28} color="#3b82f6" />
+            </View>
+            <View style={styles.webOptionText}>
+              <Text style={styles.webOptionTitle}>Type It In</Text>
+              <Text style={styles.webOptionDesc}>Enter food names separated by commas</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.webOptionCard} onPress={handlePickFromLibrary}>
+            <View style={[styles.webOptionIcon, { backgroundColor: '#d1fae5' }]}>
+              <Ionicons name="image-outline" size={28} color="#10b981" />
+            </View>
+            <View style={styles.webOptionText}>
+              <Text style={styles.webOptionTitle}>Upload Photo</Text>
+              <Text style={styles.webOptionDesc}>Select a meal photo for AI analysis</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+          </TouchableOpacity>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // Native Camera View
   return (
     <View style={styles.cameraContainer}>
       <View style={styles.cameraPlaceholder}>
@@ -811,5 +853,62 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: 'bold',
     color: 'white',
+  },
+  // Web-specific styles
+  webMainScroll: {
+    flex: 1,
+  },
+  webMainContent: {
+    padding: 20,
+    paddingTop: 40,
+  },
+  webHeader: {
+    alignItems: 'center',
+    marginBottom: 32,
+    gap: 8,
+  },
+  webTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginTop: 12,
+  },
+  webSubtitle: {
+    fontSize: 16,
+    color: '#6b7280',
+  },
+  webOptionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  webOptionIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  webOptionText: {
+    flex: 1,
+  },
+  webOptionTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 4,
+  },
+  webOptionDesc: {
+    fontSize: 14,
+    color: '#6b7280',
   },
 });

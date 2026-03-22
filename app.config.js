@@ -66,11 +66,11 @@ export default {
         projectId: 'f9613b42-7190-42a9-bd60-1c4b7746f893',
       },
       // API Configuration
-      apiUrl: process.env.API_URL || 'https://your-app.railway.app',
-      // Supabase Configuration
-      supabaseUrl: process.env.SUPABASE_URL,
-      supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
-      // Legacy - remove after backend is deployed
+      apiUrl: process.env.API_URL || 'https://cbi-app-production.up.railway.app/',
+      // Supabase Configuration (anon key is public/client-safe)
+      supabaseUrl: process.env.SUPABASE_URL || 'https://oaudtsrxuwsrkkxfxyaf.supabase.co',
+      supabaseAnonKey: process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9hdWR0c3J4dXdzcmtreGZ4eWFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3MDUyNTQsImV4cCI6MjA4NzI4MTI1NH0.vuZukHn3UqAbzFXp4yVYgfZarsAExOsDmyFhvlLz_4k',
+      // Anthropic API key should only be provided via env var, never hardcoded
       anthropicApiKey: process.env.ANTHROPIC_API_KEY,
     },
   },
