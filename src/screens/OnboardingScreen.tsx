@@ -118,74 +118,80 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
 
   const renderPage1 = () => (
     <View style={styles.page}>
-      <View style={styles.iconCircle}>
-        <Ionicons name="camera" size={64} color="#2563eb" />
-      </View>
-      <Text style={styles.pageTitle}>Track What You Eat</Text>
-      <Text style={styles.pageSubtitle}>
-        Snap a photo of your meal or scan a barcode to instantly log what you eat.
-        Our AI identifies foods and scores them for gut health.
-      </Text>
-      <View style={styles.featureRow}>
-        <View style={styles.featureBadge}>
-          <Ionicons name="scan-outline" size={20} color="#2563eb" />
-          <Text style={styles.featureBadgeText}>Barcode Scan</Text>
+      <ScrollView contentContainerStyle={styles.pageContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.iconCircle}>
+          <Ionicons name="camera" size={64} color="#2563eb" />
         </View>
-        <View style={styles.featureBadge}>
-          <Ionicons name="image-outline" size={20} color="#2563eb" />
-          <Text style={styles.featureBadgeText}>Photo AI</Text>
+        <Text style={styles.pageTitle}>Track What You Eat</Text>
+        <Text style={styles.pageSubtitle}>
+          Snap a photo of your meal or scan a barcode to instantly log what you eat.
+          Our AI identifies foods and scores them for gut health.
+        </Text>
+        <View style={styles.featureRow}>
+          <View style={styles.featureBadge}>
+            <Ionicons name="scan-outline" size={20} color="#2563eb" />
+            <Text style={styles.featureBadgeText}>Barcode Scan</Text>
+          </View>
+          <View style={styles.featureBadge}>
+            <Ionicons name="image-outline" size={20} color="#2563eb" />
+            <Text style={styles.featureBadgeText}>Photo AI</Text>
+          </View>
         </View>
-      </View>
+      </ScrollView>
     </View>
   );
 
   const renderPage2 = () => (
     <View style={styles.page}>
-      <View style={styles.iconCircle}>
-        <Ionicons name="analytics" size={64} color="#2563eb" />
-      </View>
-      <Text style={styles.pageTitle}>Understand Inflammation</Text>
-      <Text style={styles.pageSubtitle}>
-        Every food gets an inflammation score from -3 (highly inflammatory) to +3
-        (anti-inflammatory). Track your daily score and watch your health improve.
-      </Text>
-      <View style={styles.scorePreview}>
-        <View style={[styles.scoreBox, { backgroundColor: '#fee2e2' }]}>
-          <Text style={[styles.scoreValue, { color: '#dc2626' }]}>-3</Text>
-          <Text style={styles.scoreLabel}>Inflammatory</Text>
+      <ScrollView contentContainerStyle={styles.pageContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.iconCircle}>
+          <Ionicons name="analytics" size={64} color="#2563eb" />
         </View>
-        <View style={[styles.scoreBox, { backgroundColor: '#fef3c7' }]}>
-          <Text style={[styles.scoreValue, { color: '#d97706' }]}>0</Text>
-          <Text style={styles.scoreLabel}>Neutral</Text>
+        <Text style={styles.pageTitle}>Understand Inflammation</Text>
+        <Text style={styles.pageSubtitle}>
+          Every food gets an inflammation score from -3 (highly inflammatory) to +3
+          (anti-inflammatory). Track your daily score and watch your health improve.
+        </Text>
+        <View style={styles.scorePreview}>
+          <View style={[styles.scoreBox, { backgroundColor: '#fee2e2' }]}>
+            <Text style={[styles.scoreValue, { color: '#dc2626' }]}>-3</Text>
+            <Text style={styles.scoreLabel}>Inflammatory</Text>
+          </View>
+          <View style={[styles.scoreBox, { backgroundColor: '#fef3c7' }]}>
+            <Text style={[styles.scoreValue, { color: '#d97706' }]}>0</Text>
+            <Text style={styles.scoreLabel}>Neutral</Text>
+          </View>
+          <View style={[styles.scoreBox, { backgroundColor: '#dcfce7' }]}>
+            <Text style={[styles.scoreValue, { color: '#16a34a' }]}>+3</Text>
+            <Text style={styles.scoreLabel}>Anti-inflam.</Text>
+          </View>
         </View>
-        <View style={[styles.scoreBox, { backgroundColor: '#dcfce7' }]}>
-          <Text style={[styles.scoreValue, { color: '#16a34a' }]}>+3</Text>
-          <Text style={styles.scoreLabel}>Anti-inflam.</Text>
-        </View>
-      </View>
+      </ScrollView>
     </View>
   );
 
   const renderPage3 = () => (
     <View style={styles.page}>
-      <View style={styles.iconCircle}>
-        <Ionicons name="school" size={64} color="#2563eb" />
-      </View>
-      <Text style={styles.pageTitle}>Learn the Science</Text>
-      <Text style={styles.pageSubtitle}>
-        Explore lessons on the gut-brain connection, the enteric nervous system,
-        and how your diet shapes your microbiome. Science-backed knowledge at your fingertips.
-      </Text>
-      <View style={styles.featureRow}>
-        <View style={styles.featureBadge}>
-          <Ionicons name="book-outline" size={20} color="#2563eb" />
-          <Text style={styles.featureBadgeText}>Lessons</Text>
+      <ScrollView contentContainerStyle={styles.pageContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.iconCircle}>
+          <Ionicons name="school" size={64} color="#2563eb" />
         </View>
-        <View style={styles.featureBadge}>
-          <Ionicons name="bulb-outline" size={20} color="#2563eb" />
-          <Text style={styles.featureBadgeText}>Insights</Text>
+        <Text style={styles.pageTitle}>Learn the Science</Text>
+        <Text style={styles.pageSubtitle}>
+          Explore lessons on the gut-brain connection, the enteric nervous system,
+          and how your diet shapes your microbiome. Science-backed knowledge at your fingertips.
+        </Text>
+        <View style={styles.featureRow}>
+          <View style={styles.featureBadge}>
+            <Ionicons name="book-outline" size={20} color="#2563eb" />
+            <Text style={styles.featureBadgeText}>Lessons</Text>
+          </View>
+          <View style={styles.featureBadge}>
+            <Ionicons name="bulb-outline" size={20} color="#2563eb" />
+            <Text style={styles.featureBadgeText}>Insights</Text>
+          </View>
         </View>
-      </View>
+      </ScrollView>
     </View>
   );
 
@@ -357,10 +363,14 @@ const styles = StyleSheet.create({
   },
   page: {
     flex: 1,
+    paddingHorizontal: 32,
+  },
+  pageContent: {
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 32,
-    paddingBottom: 100,
+    paddingBottom: 20,
+    paddingTop: 20,
   },
   iconCircle: {
     width: 140,
