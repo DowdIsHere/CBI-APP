@@ -1,110 +1,138 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
-import { supabase, isDemoMode } from '../lib/supabase';
+import { supabase, signIn, signUp, signOut, getSession } from '../services/supabase';
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  loading: boolean;
-  signUp: (email: string, password: string, name: string) => Promise<{ error: string | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signOut: () => Promise<void>;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signUp: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signOut: () => Promise<{ success: boolean; error?: string }>;
 }
 
-const DEMO_USER = {
-  id: 'demo-user',
-  email: 'demo@cbi-app.com',
-  user_metadata: { full_name: 'Demo User' },
-} as unknown as User;
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  session: null,
-  loading: true,
-  signUp: async () => ({ error: null }),
-  signIn: async () => ({ error: null }),
-  signOut: async () => {},
-});
-
-export function useAuth() {
-  return useContext(AuthContext);
-}
-
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(isDemoMode ? DEMO_USER : null);
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(!isDemoMode);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (isDemoMode) return;
+    // Load initial session
+    loadSession();
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, newSession) => {
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+        if (event === 'SIGNED_OUT') {
+          setSession(null);
+          setUser(null);
+        }
+      }
+    );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const signUp = async (email: string, password: string, name: string) => {
-    if (isDemoMode) {
-      setUser(DEMO_USER);
-      return { error: null };
+  const loadSession = async () => {
+    try {
+      const { session } = await getSession();
+      setSession(session);
+      setUser(session?.user ?? null);
+    } catch (error) {
+      console.error('Failed to load session:', error);
+    } finally {
+      setIsLoading(false);
     }
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: name },
-      },
-    });
-
-    if (error) return { error: error.message };
-
-    const { data: { user: newUser } } = await supabase.auth.getUser();
-    if (newUser) {
-      await supabase.from('profiles').upsert({
-        id: newUser.id,
-        name,
-        email,
-        condition: '',
-        join_date: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-        allergies: [],
-        sensitivities: [],
-      });
-    }
-
-    return { error: null };
   };
 
-  const signIn = async (email: string, password: string) => {
-    if (isDemoMode) {
-      setUser(DEMO_USER);
-      return { error: null };
+  const handleSignIn = async (email: string, password: string) => {
+    try {
+      const { data, error } = await signIn(email, password);
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      setSession(data.session);
+      setUser(data.user);
+      return { success: true };
+    } catch (error) {
+      console.error('Sign in error:', error);
+      return { success: false, error: 'Failed to sign in. Please try again.' };
     }
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { error: error.message };
-    return { error: null };
   };
 
-  const signOut = async () => {
-    if (isDemoMode) {
-      setUser(DEMO_USER);
-      return;
+  const handleSignUp = async (email: string, password: string) => {
+    try {
+      const { data, error } = await signUp(email, password);
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      // Note: User may need to verify email depending on Supabase settings
+      if (data.user && !data.session) {
+        return {
+          success: true,
+          error: 'Please check your email to verify your account.',
+        };
+      }
+
+      setSession(data.session);
+      setUser(data.user);
+      return { success: true };
+    } catch (error) {
+      console.error('Sign up error:', error);
+      return { success: false, error: 'Failed to create account. Please try again.' };
     }
-    await supabase.auth.signOut();
+  };
+
+  const handleSignOut = async () => {
+    try {
+      const { error } = await signOut();
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      setSession(null);
+      setUser(null);
+      return { success: true };
+    } catch (error) {
+      console.error('Sign out error:', error);
+      return { success: false, error: 'Failed to sign out. Please try again.' };
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        isLoading,
+        isAuthenticated: !!session,
+        signIn: handleSignIn,
+        signUp: handleSignUp,
+        signOut: handleSignOut,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 }

@@ -1,100 +1,54 @@
-import 'react-native-url-polyfill/auto';
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import {
-  NavigationContainer,
-  NavigationContainerRef,
-} from '@react-navigation/native';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import * as Notifications from 'expo-notifications';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
-import { AuthProvider, useAuth } from './src/contexts/AuthContext';
-import { AppProvider } from './src/data/AppContext';
+import { NavigationContainer } from '@react-navigation/native';
+import { ActivityIndicator, View } from 'react-native';
 import AppNavigator from './src/navigation/AppNavigator';
-import AuthScreen from './src/screens/AuthScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
-import { initializeNotifications } from './src/services/notifications';
+import AuthScreen from './src/screens/AuthScreen';
+import { AppProvider, useAppData } from './src/data/AppContext';
+import { AuthProvider, useAuth } from './src/contexts/AuthContext';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { ToastProvider } from './src/contexts/ToastContext';
+import OfflineBanner from './src/components/OfflineBanner';
 
-const ONBOARDING_KEY = 'cbi_onboarding_complete';
+function AppContent() {
+  const { isLoading: authLoading, isAuthenticated } = useAuth();
+  const { isLoading: dataLoading, hasCompletedOnboarding } = useAppData();
+  const [showOnboarding, setShowOnboarding] = useState(true);
 
-function RootNavigator() {
-  const { user, loading } = useAuth();
-  const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
-  const navigationRef = useRef<NavigationContainerRef<any>>(null);
-  const notificationResponseListener = useRef<Notifications.Subscription>(null);
-
-  useEffect(() => {
-    if (user) {
-      AsyncStorage.getItem(ONBOARDING_KEY).then((value) => {
-        setOnboardingComplete(value === 'true');
-      });
-    } else {
-      setOnboardingComplete(null);
-    }
-  }, [user]);
-
-  // Initialize notifications when a user is authenticated (native only)
-  useEffect(() => {
-    if (!user || Platform.OS === 'web') return;
-
-    initializeNotifications().catch((err) =>
-      console.warn('Failed to initialize notifications:', err),
-    );
-  }, [user]);
-
-  // Handle notification taps - navigate to the appropriate screen (native only)
-  useEffect(() => {
-    if (!user || Platform.OS === 'web') return;
-
-    notificationResponseListener.current =
-      Notifications.addNotificationResponseReceivedListener((response) => {
-        const data = response.notification.request.content.data;
-        const screen = data?.screen as string | undefined;
-
-        if (screen && navigationRef.current?.isReady()) {
-          navigationRef.current.navigate(screen);
-        }
-      });
-
-    return () => {
-      if (notificationResponseListener.current) {
-        notificationResponseListener.current.remove();
-      }
-    };
-  }, [user]);
-
-  const handleOnboardingComplete = useCallback(() => {
-    setOnboardingComplete(true);
-  }, []);
-
-  if (loading) {
+  // Show loading while checking auth
+  if (authLoading || dataLoading) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color="#1e3a8a" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1e3a8a' }}>
+        <ActivityIndicator size="large" color="#fff" />
       </View>
     );
   }
 
-  if (!user) {
-    return <AuthScreen />;
-  }
-
-  if (onboardingComplete === null) {
+  // Show auth screen if not signed in
+  if (!isAuthenticated) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color="#2563eb" />
-      </View>
+      <>
+        <AuthScreen />
+        <StatusBar style="dark" />
+      </>
     );
   }
 
-  if (!onboardingComplete) {
-    return <OnboardingScreen onComplete={handleOnboardingComplete} />;
+  // Show onboarding for new users
+  if (!hasCompletedOnboarding && showOnboarding) {
+    return (
+      <>
+        <OnboardingScreen onComplete={() => setShowOnboarding(false)} />
+        <StatusBar style="dark" />
+      </>
+    );
   }
 
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer>
       <AppNavigator />
+      <OfflineBanner />
       <StatusBar style="light" />
     </NavigationContainer>
   );
@@ -102,19 +56,14 @@ function RootNavigator() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppProvider>
-        <RootNavigator />
-      </AppProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppProvider>
+          <ToastProvider>
+            <AppContent />
+          </ToastProvider>
+        </AppProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
-
-const styles = StyleSheet.create({
-  loading: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f9fafb',
-  },
-});
