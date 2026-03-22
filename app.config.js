@@ -1,12 +1,14 @@
+import 'dotenv/config';
+
 export default {
   expo: {
-    name: 'CBI - Cellular Biology Intelligence',
-    slug: 'cbi-app',
+    name: 'Mido App',
+    slug: 'mido-app',
     version: '1.0.0',
     orientation: 'portrait',
     icon: './assets/icon.png',
     userInterfaceStyle: 'light',
-    newArchEnabled: true,
+    newArchEnabled: false,
     jsEngine: 'hermes',
     splash: {
       image: './assets/splash-icon.png',
@@ -15,44 +17,14 @@ export default {
     },
     ios: {
       supportsTablet: true,
-      bundleIdentifier: 'com.cbi.dowdprotocol',
+      bundleIdentifier: 'com.mido.app',
       jsEngine: 'jsc',
-      buildNumber: '1',
       infoPlist: {
         NSCameraUsageDescription:
           'This app needs access to your camera to take photos of your meals for analysis.',
         NSPhotoLibraryUsageDescription:
           'This app needs access to your photo library to select meal photos for analysis.',
         ITSAppUsesNonExemptEncryption: false,
-        NSUserTrackingUsageDescription:
-          'This identifier will be used to deliver personalized nutrition recommendations.',
-      },
-      privacyManifests: {
-        NSPrivacyAccessedAPITypes: [
-          {
-            NSPrivacyAccessedAPIType:
-              'NSPrivacyAccessedAPICategoryUserDefaults',
-            NSPrivacyAccessedAPITypeReasons: ['CA92.1'],
-          },
-        ],
-        NSPrivacyCollectedDataTypes: [
-          {
-            NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypeHealthData',
-            NSPrivacyCollectedDataTypeLinked: false,
-            NSPrivacyCollectedDataTypeTracking: false,
-            NSPrivacyCollectedDataTypePurposes: [
-              'NSPrivacyCollectedDataTypePurposeAppFunctionality',
-            ],
-          },
-          {
-            NSPrivacyCollectedDataType: 'NSPrivacyCollectedDataTypePhotos',
-            NSPrivacyCollectedDataTypeLinked: true,
-            NSPrivacyCollectedDataTypeTracking: false,
-            NSPrivacyCollectedDataTypePurposes: [
-              'NSPrivacyCollectedDataTypePurposeAppFunctionality',
-            ],
-          },
-        ],
       },
     },
     android: {
@@ -60,8 +32,7 @@ export default {
         foregroundImage: './assets/adaptive-icon.png',
         backgroundColor: '#1e3a8a',
       },
-      package: 'com.cbi.dowdprotocol',
-      versionCode: 1,
+      package: 'com.mido.app',
       permissions: [
         'android.permission.CAMERA',
         'android.permission.READ_EXTERNAL_STORAGE',
@@ -79,30 +50,28 @@ export default {
         'expo-camera',
         {
           cameraPermission:
-            'Allow CBI to access your camera to take photos of your meals.',
+            'Allow Mido to access your camera to take photos of your meals.',
         },
       ],
       [
         'expo-image-picker',
         {
           photosPermission:
-            'Allow CBI to access your photos to select meal images for analysis.',
-        },
-      ],
-      [
-        'expo-notifications',
-        {
-          icon: './assets/icon.png',
-          color: '#1e3a8a',
+            'Allow Mido to access your photos to select meal images for analysis.',
         },
       ],
     ],
     extra: {
-      supabaseUrl: process.env.SUPABASE_URL || '',
-      supabaseAnonKey: process.env.SUPABASE_ANON_KEY || '',
       eas: {
         projectId: 'f9613b42-7190-42a9-bd60-1c4b7746f893',
       },
+      // API Configuration
+      apiUrl: process.env.API_URL || 'https://your-app.railway.app',
+      // Supabase Configuration
+      supabaseUrl: process.env.SUPABASE_URL,
+      supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+      // Legacy - remove after backend is deployed
+      anthropicApiKey: process.env.ANTHROPIC_API_KEY,
     },
   },
 };
