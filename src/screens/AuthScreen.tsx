@@ -9,13 +9,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert,
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 
 type AuthMode = 'signin' | 'signup';
+type FeedbackTone = 'error' | 'success' | 'info';
 
 export default function AuthScreen() {
   const [mode, setMode] = useState<AuthMode>('signin');
@@ -24,41 +24,27 @@ export default function AuthScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [feedback, setFeedback] = useState<{ tone: FeedbackTone; message: string } | null>(null);
 
   const { signIn, signUp } = useAuth();
 
-  const validateForm = (): boolean => {
-    if (!email.trim()) {
-      Alert.alert('Error', 'Please enter your email address.');
-      return false;
-    }
-
-    if (!email.includes('@') || !email.includes('.')) {
-      Alert.alert('Error', 'Please enter a valid email address.');
-      return false;
-    }
-
-    if (!password) {
-      Alert.alert('Error', 'Please enter your password.');
-      return false;
-    }
-
-    if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters.');
-      return false;
-    }
-
-    if (mode === 'signup' && password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match.');
-      return false;
-    }
-
-    return true;
+  const validateForm = (): string | null => {
+    if (!email.trim()) return 'Please enter your email address.';
+    if (!email.includes('@') || !email.includes('.')) return 'Please enter a valid email address.';
+    if (!password) return 'Please enter your password.';
+    if (password.length < 6) return 'Password must be at least 6 characters.';
+    if (mode === 'signup' && password !== confirmPassword) return 'Passwords do not match.';
+    return null;
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) return;
+    const validationError = validateForm();
+    if (validationError) {
+      setFeedback({ tone: 'error', message: validationError });
+      return;
+    }
 
+    setFeedback(null);
     setIsLoading(true);
 
     try {
@@ -67,11 +53,24 @@ export default function AuthScreen() {
         : await signUp(email.trim(), password);
 
       if (!result.success) {
-        Alert.alert('Error', result.error || 'Authentication failed.');
-      } else if (result.error) {
-        // Success with message (e.g., verification email sent)
-        Alert.alert('Success', result.error);
+        setFeedback({ tone: 'error', message: result.error || 'Authentication failed.' });
+        return;
       }
+
+      // Success with message means email verification required (no session yet).
+      // Switch to sign-in mode so the user can sign in once they verify.
+      if (result.error) {
+        setFeedback({ tone: 'info', message: result.error });
+        if (mode === 'signup') {
+          setMode('signin');
+          setConfirmPassword('');
+        }
+      }
+      // Otherwise, isAuthenticated will flip to true in AuthContext and App.tsx
+      // will navigate away from this screen automatically.
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Something went wrong. Please try again.';
+      setFeedback({ tone: 'error', message });
     } finally {
       setIsLoading(false);
     }
@@ -81,6 +80,7 @@ export default function AuthScreen() {
     setMode(mode === 'signin' ? 'signup' : 'signin');
     setPassword('');
     setConfirmPassword('');
+    setFeedback(null);
   };
 
   return (
@@ -154,6 +154,20 @@ export default function AuthScreen() {
                 />
               </View>
             )}
+
+            {feedback && (() => {
+              const toneStyles = {
+                error: { box: styles.feedback_error, text: styles.feedbackText_error, color: '#b91c1c', icon: 'alert-circle' as const },
+                success: { box: styles.feedback_success, text: styles.feedbackText_success, color: '#047857', icon: 'checkmark-circle' as const },
+                info: { box: styles.feedback_info, text: styles.feedbackText_info, color: '#1d4ed8', icon: 'information-circle' as const },
+              }[feedback.tone];
+              return (
+                <View style={[styles.feedback, toneStyles.box]}>
+                  <Ionicons name={toneStyles.icon} size={18} color={toneStyles.color} style={styles.feedbackIcon} />
+                  <Text style={[styles.feedbackText, toneStyles.text]}>{feedback.message}</Text>
+                </View>
+              );
+            })()}
 
             <TouchableOpacity
               style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
@@ -274,5 +288,44 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#3b82f6',
+  },
+  feedback: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+  },
+  feedback_error: {
+    backgroundColor: '#fef2f2',
+    borderColor: '#fecaca',
+  },
+  feedback_success: {
+    backgroundColor: '#ecfdf5',
+    borderColor: '#a7f3d0',
+  },
+  feedback_info: {
+    backgroundColor: '#eff6ff',
+    borderColor: '#bfdbfe',
+  },
+  feedbackIcon: {
+    marginRight: 8,
+    marginTop: 1,
+  },
+  feedbackText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  feedbackText_error: {
+    color: '#b91c1c',
+  },
+  feedbackText_success: {
+    color: '#047857',
+  },
+  feedbackText_info: {
+    color: '#1d4ed8',
   },
 });
