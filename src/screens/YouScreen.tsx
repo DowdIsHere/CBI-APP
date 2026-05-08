@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import Panel from '../components/panels/Panel';
 import { useAppData } from '../data/AppContext';
+import { useAuth } from '../contexts/AuthContext';
 import { Trigger, FastingSchedule } from '../data/types';
 import { exportAndShare, getExportSummary, ExportFormat, ExportScope } from '../services/dataExport';
 
@@ -105,6 +106,7 @@ export default function YouScreen({ navigation }: any) {
   const [fastingDays, setFastingDays] = useState<string[]>([]);
 
   const { data, getWeeklyStats, addTrigger, removeTrigger, updateProfile, updateSettings } = useAppData();
+  const { signOut } = useAuth();
   const { user, stats, triggers, settings } = data;
 
   const weeklyData = getWeeklyStats();
@@ -1026,10 +1028,16 @@ export default function YouScreen({ navigation }: any) {
               'Are you sure you want to log out?',
               [
                 { text: 'Cancel', style: 'cancel' },
-                { text: 'Log Out', style: 'destructive', onPress: () => {
-                  // In a real app, this would clear auth and navigate to login
-                  Alert.alert('Logged Out', 'You have been logged out.');
-                }},
+                {
+                  text: 'Log Out',
+                  style: 'destructive',
+                  onPress: async () => {
+                    const result = await signOut();
+                    if (!result.success) {
+                      Alert.alert('Error', result.error || 'Could not sign out.');
+                    }
+                  },
+                },
               ]
             );
           }}

@@ -122,6 +122,31 @@ export interface CurrentLesson {
   timeEstimate: string;
 }
 
+// Symptom logging — uses a small fixed vocabulary so we can correlate cleanly with foods.
+export type SymptomType =
+  | 'energy'
+  | 'mood'
+  | 'pain'
+  | 'bloating'
+  | 'stool'
+  | 'sleep'
+  | 'brain_fog';
+
+export interface SymptomEntry {
+  id: string;
+  date: string;       // YYYY-MM-DD
+  time: string;       // HH:mm (24h)
+  type: SymptomType;
+  severity: number;   // 1 (mild/none) – 5 (severe / great, depending on metric)
+  notes?: string;
+}
+
+export interface FoodSymptomCorrelation {
+  food: string;
+  symptom: SymptomType;
+  occurrences: number;
+}
+
 // Fasting Schedule
 export interface FastingSchedule {
   enabled: boolean;
@@ -144,6 +169,7 @@ export interface AppData {
   stats: UserStats;
   triggers: Trigger[];
   meals: Meal[];
+  symptoms: SymptomEntry[];
   dailyStats: DailyStats[];
   achievements: Achievement[];
   insights: Insight[];
@@ -151,4 +177,5 @@ export interface AppData {
   currentLesson: CurrentLesson;
   completedLessonIds: string[];
   settings: Settings;
+  updatedAt: string; // ISO timestamp; bumped on every write so cloud sync can resolve conflicts
 }

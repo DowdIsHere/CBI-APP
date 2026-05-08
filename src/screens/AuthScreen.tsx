@@ -15,7 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 
-type AuthMode = 'signin' | 'signup';
+type AuthMode = 'signin' | 'signup' | 'reset';
 
 export default function AuthScreen() {
   const [mode, setMode] = useState<AuthMode>('signin');
@@ -24,8 +24,9 @@ export default function AuthScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [pendingVerification, setPendingVerification] = useState(false);
 
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, resetPassword, resendVerification } = useAuth();
 
   const validateForm = (): boolean => {
     if (!email.trim()) {
@@ -37,6 +38,8 @@ export default function AuthScreen() {
       Alert.alert('Error', 'Please enter a valid email address.');
       return false;
     }
+
+    if (mode === 'reset') return true;
 
     if (!password) {
       Alert.alert('Error', 'Please enter your password.');
@@ -62,6 +65,20 @@ export default function AuthScreen() {
     setIsLoading(true);
 
     try {
+      if (mode === 'reset') {
+        const result = await resetPassword(email.trim());
+        if (!result.success) {
+          Alert.alert('Error', result.error || 'Could not send reset email.');
+        } else {
+          Alert.alert(
+            'Check your email',
+            'If an account exists for this address, a password reset link is on the way.',
+            [{ text: 'OK', onPress: () => setMode('signin') }],
+          );
+        }
+        return;
+      }
+
       const result = mode === 'signin'
         ? await signIn(email.trim(), password)
         : await signUp(email.trim(), password);
@@ -69,8 +86,27 @@ export default function AuthScreen() {
       if (!result.success) {
         Alert.alert('Error', result.error || 'Authentication failed.');
       } else if (result.error) {
-        // Success with message (e.g., verification email sent)
+        // Verification email path
+        setPendingVerification(true);
         Alert.alert('Success', result.error);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (!email.trim()) {
+      Alert.alert('Email needed', 'Enter the email you signed up with.');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const result = await resendVerification(email.trim());
+      if (result.success) {
+        Alert.alert('Verification sent', 'Check your inbox for the new link.');
+      } else {
+        Alert.alert('Error', result.error || 'Could not resend verification email.');
       }
     } finally {
       setIsLoading(false);
@@ -81,6 +117,7 @@ export default function AuthScreen() {
     setMode(mode === 'signin' ? 'signup' : 'signin');
     setPassword('');
     setConfirmPassword('');
+    setPendingVerification(false);
   };
 
   return (
@@ -98,7 +135,11 @@ export default function AuthScreen() {
           />
           <Text style={styles.title}>Mido</Text>
           <Text style={styles.subtitle}>
-            {mode === 'signin' ? 'Welcome back!' : 'Create your account'}
+            {mode === 'signin'
+              ? 'Welcome back!'
+              : mode === 'signup'
+                ? 'Create your account'
+                : 'Reset your password'}
           </Text>
 
           {/* Form */}
@@ -117,28 +158,30 @@ export default function AuthScreen() {
               />
             </View>
 
-            <View style={styles.inputContainer}>
-              <Ionicons name="lock-closed" size={20} color="#6b7280" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                placeholderTextColor="#9ca3af"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeIcon}
-              >
-                <Ionicons
-                  name={showPassword ? 'eye-off' : 'eye'}
-                  size={20}
-                  color="#6b7280"
+            {mode !== 'reset' && (
+              <View style={styles.inputContainer}>
+                <Ionicons name="lock-closed" size={20} color="#6b7280" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Password"
+                  placeholderTextColor="#9ca3af"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
                 />
-              </TouchableOpacity>
-            </View>
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.eyeIcon}
+                >
+                  <Ionicons
+                    name={showPassword ? 'eye-off' : 'eye'}
+                    size={20}
+                    color="#6b7280"
+                  />
+                </TouchableOpacity>
+              </View>
+            )}
 
             {mode === 'signup' && (
               <View style={styles.inputContainer}>
@@ -155,6 +198,15 @@ export default function AuthScreen() {
               </View>
             )}
 
+            {mode === 'signin' && (
+              <TouchableOpacity
+                onPress={() => setMode('reset')}
+                style={styles.forgotLinkContainer}
+              >
+                <Text style={styles.forgotLink}>Forgot password?</Text>
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity
               style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
               onPress={handleSubmit}
@@ -164,22 +216,44 @@ export default function AuthScreen() {
                 <ActivityIndicator color="white" />
               ) : (
                 <Text style={styles.submitButtonText}>
-                  {mode === 'signin' ? 'Sign In' : 'Create Account'}
+                  {mode === 'signin'
+                    ? 'Sign In'
+                    : mode === 'signup'
+                      ? 'Create Account'
+                      : 'Send reset link'}
                 </Text>
               )}
             </TouchableOpacity>
+
+            {pendingVerification && mode === 'signup' && (
+              <TouchableOpacity
+                onPress={handleResend}
+                disabled={isLoading}
+                style={styles.forgotLinkContainer}
+              >
+                <Text style={styles.forgotLink}>Resend verification email</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Toggle Mode */}
           <View style={styles.toggleContainer}>
-            <Text style={styles.toggleText}>
-              {mode === 'signin' ? "Don't have an account?" : 'Already have an account?'}
-            </Text>
-            <TouchableOpacity onPress={toggleMode}>
-              <Text style={styles.toggleLink}>
-                {mode === 'signin' ? 'Sign Up' : 'Sign In'}
-              </Text>
-            </TouchableOpacity>
+            {mode === 'reset' ? (
+              <TouchableOpacity onPress={() => setMode('signin')}>
+                <Text style={styles.toggleLink}>Back to sign in</Text>
+              </TouchableOpacity>
+            ) : (
+              <>
+                <Text style={styles.toggleText}>
+                  {mode === 'signin' ? "Don't have an account?" : 'Already have an account?'}
+                </Text>
+                <TouchableOpacity onPress={toggleMode}>
+                  <Text style={styles.toggleLink}>
+                    {mode === 'signin' ? 'Sign Up' : 'Sign In'}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -273,6 +347,16 @@ const styles = StyleSheet.create({
   toggleLink: {
     fontSize: 14,
     fontWeight: '600',
+    color: '#3b82f6',
+  },
+  forgotLinkContainer: {
+    alignItems: 'flex-end',
+    paddingVertical: 8,
+    marginBottom: 4,
+  },
+  forgotLink: {
+    fontSize: 13,
+    fontWeight: '500',
     color: '#3b82f6',
   },
 });

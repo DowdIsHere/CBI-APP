@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { ActivityIndicator, View } from 'react-native';
@@ -10,6 +10,8 @@ import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { ToastProvider } from './src/contexts/ToastContext';
 import OfflineBanner from './src/components/OfflineBanner';
+import { logger } from './src/services/logger';
+import { configureNotificationHandler } from './src/services/notifications';
 
 function AppContent() {
   const { isLoading: authLoading, isAuthenticated } = useAuth();
@@ -55,6 +57,11 @@ function AppContent() {
 }
 
 export default function App() {
+  useEffect(() => {
+    logger.init();
+    configureNotificationHandler();
+  }, []);
+
   return (
     <ErrorBoundary>
       <AuthProvider>

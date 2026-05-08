@@ -9,6 +9,7 @@ import EducationScreen from '../screens/EducationScreen';
 import ModuleScreen from '../screens/ModuleScreen';
 import LessonScreen from '../screens/LessonScreen';
 import ArticleScreen from '../screens/ArticleScreen';
+import SymptomScreen from '../screens/SymptomScreen';
 import { createStackNavigator } from '@react-navigation/stack';
 
 const Tab = createBottomTabNavigator();
@@ -136,6 +137,11 @@ export default function AppNavigator() {
         options={({ route }: any) => ({
           title: route.params?.articleTitle || 'Article',
         })}
+      />
+      <Stack.Screen
+        name="Symptoms"
+        component={SymptomScreen}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );
