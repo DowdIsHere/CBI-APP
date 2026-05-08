@@ -32,6 +32,8 @@ export const initialData: AppData = {
 
   meals: [],
 
+  symptoms: [],
+
   dailyStats: [],
 
   achievements: [
@@ -73,6 +75,8 @@ export const initialData: AppData = {
       days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
     },
   },
+
+  updatedAt: new Date(0).toISOString(),
 };
 
 // Demo data with some progress for testing
@@ -145,6 +149,8 @@ export const demoData: AppData = {
     },
   ],
 
+  symptoms: [],
+
   dailyStats: [
     { date: getDateString(-6), totalScore: 12, mealsLogged: 3, energyLevel: 7 },
     { date: getDateString(-5), totalScore: 9, mealsLogged: 2, energyLevel: 6 },
@@ -198,6 +204,8 @@ export const demoData: AppData = {
       days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
     },
   },
+
+  updatedAt: new Date(0).toISOString(),
 };
 
 // Helper to get date string for N days ago

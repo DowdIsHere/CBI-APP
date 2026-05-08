@@ -17,9 +17,12 @@ export default function HomeScreen({ navigation }: any) {
   const [insightsOpen, setInsightsOpen] = useState(false);
   const [achievementsOpen, setAchievementsOpen] = useState(false);
 
-  const { data, getTodaysMeals } = useAppData();
+  const { data, getTodaysMeals, getRecentSymptoms, getFoodSymptomCorrelations } = useAppData();
   const { stats, insights, achievements, currentLesson } = data;
   const todaysMeals = getTodaysMeals();
+  const recentSymptoms = getRecentSymptoms(7);
+  const correlations = getFoodSymptomCorrelations(1);
+  const topCorrelation = correlations[0];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -89,8 +92,51 @@ export default function HomeScreen({ navigation }: any) {
             </View>
           </TouchableOpacity>
 
+          {/* Symptom correlation insight */}
+          {topCorrelation && (
+            <TouchableOpacity
+              style={styles.correlationCard}
+              onPress={() => navigation.navigate('Symptoms')}
+              activeOpacity={0.9}
+            >
+              <View style={styles.correlationHeader}>
+                <Ionicons name="trending-up" size={18} color="#92400e" />
+                <Text style={styles.correlationTitle}>Pattern detected</Text>
+              </View>
+              <Text style={styles.correlationBody}>
+                <Text style={styles.correlationStrong}>{topCorrelation.food}</Text>
+                {' has shown up before '}
+                <Text style={styles.correlationStrong}>{topCorrelation.symptom.replace('_', ' ')}</Text>
+                {` ${topCorrelation.occurrences}× this week.`}
+              </Text>
+              <Text style={styles.correlationFooter}>Tap to log how you're feeling →</Text>
+            </TouchableOpacity>
+          )}
+
           {/* Teasers Section */}
           <View style={styles.teasersSection}>
+            {/* Symptom log teaser */}
+            <TouchableOpacity
+              style={styles.teaser}
+              onPress={() => navigation.navigate('Symptoms')}
+              activeOpacity={0.8}
+            >
+              <View style={styles.teaserContent}>
+                <View style={[styles.teaserIcon, { backgroundColor: '#fee2e2' }]}>
+                  <Ionicons name="pulse" size={20} color="#ef4444" />
+                </View>
+                <View style={styles.teaserText}>
+                  <Text style={styles.teaserTitle}>Log how you feel</Text>
+                  <Text style={styles.teaserSubtitle}>
+                    {recentSymptoms.length > 0
+                      ? `${recentSymptoms.length} entries this week`
+                      : 'Track energy, pain, sleep & more'}
+                  </Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+            </TouchableOpacity>
+
             {/* 3. Insights Teaser */}
             <TouchableOpacity
               style={styles.teaser}
@@ -621,4 +667,21 @@ const styles = StyleSheet.create({
   achievementNameLocked: {
     color: '#9ca3af',
   },
+  correlationCard: {
+    backgroundColor: '#fef3c7',
+    borderRadius: 14,
+    padding: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#f59e0b',
+  },
+  correlationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  correlationTitle: { fontSize: 13, fontWeight: '700', color: '#92400e', textTransform: 'uppercase', letterSpacing: 0.5 },
+  correlationBody: { fontSize: 14, color: '#1f2937', lineHeight: 20 },
+  correlationStrong: { fontWeight: '700' },
+  correlationFooter: { fontSize: 12, color: '#92400e', marginTop: 8, fontWeight: '600' },
 });

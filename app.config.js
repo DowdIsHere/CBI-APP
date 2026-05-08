@@ -60,6 +60,12 @@ export default {
             'Allow Mido to access your photos to select meal images for analysis.',
         },
       ],
+      [
+        'expo-notifications',
+        {
+          color: '#1e3a8a',
+        },
+      ],
     ],
     extra: {
       eas: {
@@ -72,6 +78,8 @@ export default {
       supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
       // Legacy - remove after backend is deployed
       anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+      // Sentry DSN (optional). When set, logger.ts will switch from console to Sentry.
+      sentryDsn: process.env.SENTRY_DSN,
     },
   },
 };

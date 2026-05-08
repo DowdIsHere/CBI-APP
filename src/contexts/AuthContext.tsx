@@ -1,6 +1,15 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
-import { supabase, signIn, signUp, signOut, getSession } from '../services/supabase';
+import {
+  supabase,
+  signIn,
+  signUp,
+  signOut,
+  getSession,
+  resetPassword,
+  resendVerificationEmail,
+} from '../services/supabase';
+import { logger } from '../services/logger';
 
 interface AuthContextType {
   user: User | null;
@@ -10,6 +19,8 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signUp: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<{ success: boolean; error?: string }>;
+  resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
+  resendVerification: (email: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,6 +43,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (event === 'SIGNED_OUT') {
           setSession(null);
           setUser(null);
+          logger.setUser(null);
+        } else if (newSession?.user) {
+          logger.setUser({ id: newSession.user.id, email: newSession.user.email });
         }
       }
     );
@@ -95,6 +109,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const handleResetPassword = async (email: string) => {
+    try {
+      const { error } = await resetPassword(email);
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch (error) {
+      logger.captureException(error, { source: 'resetPassword' });
+      return { success: false, error: 'Failed to send reset email. Please try again.' };
+    }
+  };
+
+  const handleResendVerification = async (email: string) => {
+    try {
+      const { error } = await resendVerificationEmail(email);
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch (error) {
+      logger.captureException(error, { source: 'resendVerification' });
+      return { success: false, error: 'Failed to resend verification email.' };
+    }
+  };
+
   const handleSignOut = async () => {
     try {
       const { error } = await signOut();
@@ -122,6 +158,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signIn: handleSignIn,
         signUp: handleSignUp,
         signOut: handleSignOut,
+        resetPassword: handleResetPassword,
+        resendVerification: handleResendVerification,
       }}
     >
       {children}

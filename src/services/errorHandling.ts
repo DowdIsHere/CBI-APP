@@ -1,5 +1,6 @@
 import { Alert, Platform } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
+import { logger } from './logger';
 
 // Error types for categorization
 export enum ErrorType {
@@ -167,6 +168,11 @@ export async function withErrorHandling<T>(
     return { success: true, data };
   } catch (err) {
     const appError = parseError(err);
+
+    logger.captureException(appError.originalError ?? err, {
+      type: appError.type,
+      userMessage: appError.userMessage,
+    });
 
     if (options?.onError) {
       options.onError(appError);
