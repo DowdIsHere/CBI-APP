@@ -90,6 +90,7 @@ export default function HomeScreen({ navigation }: any) {
           </TouchableOpacity>
 
           {/* Teasers Section */}
+          <Text style={styles.sectionHeading}>More</Text>
           <View style={styles.teasersSection}>
             {/* 3. Insights Teaser */}
             <TouchableOpacity
@@ -279,7 +280,16 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#1e3a8a',
-    padding: 20,
+    paddingTop: 20,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    elevation: 6,
+    shadowColor: '#1e3a8a',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
   },
   headerContent: {
     flexDirection: 'row',
@@ -304,8 +314,20 @@ const styles = StyleSheet.create({
     color: '#bfdbfe',
   },
   content: {
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
     padding: 16,
     gap: 16,
+  },
+  sectionHeading: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#9ca3af',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: -4,
+    marginLeft: 4,
   },
   scoreCard: {
     backgroundColor: '#10b981',
