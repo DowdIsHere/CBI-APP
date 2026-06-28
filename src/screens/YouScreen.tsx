@@ -408,6 +408,8 @@ export default function YouScreen({ navigation }: any) {
           </View>
         </View>
 
+        <View style={styles.contentWrap}>
+        <Text style={styles.sectionHeading}>Manage</Text>
         {/* Menu Items */}
         <View style={styles.menuSection}>
           {/* Trigger List */}
@@ -475,19 +477,26 @@ export default function YouScreen({ navigation }: any) {
         </View>
 
         {/* Quick Actions */}
+        <Text style={styles.sectionHeading}>Quick actions</Text>
         <View style={styles.quickActions}>
           <TouchableOpacity
             style={styles.quickAction}
             onPress={() => setExportOpen(true)}
+            activeOpacity={0.85}
           >
-            <Ionicons name="download" size={20} color="#3b82f6" />
+            <View style={[styles.quickActionIcon, { backgroundColor: '#dbeafe' }]}>
+              <Ionicons name="download" size={20} color="#3b82f6" />
+            </View>
             <Text style={styles.quickActionText}>Export Data</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.quickAction}
             onPress={() => navigation.navigate('Learn')}
+            activeOpacity={0.85}
           >
-            <Ionicons name="help-circle" size={20} color="#3b82f6" />
+            <View style={[styles.quickActionIcon, { backgroundColor: '#ede9fe' }]}>
+              <Ionicons name="help-circle" size={20} color="#8b5cf6" />
+            </View>
             <Text style={styles.quickActionText}>Help</Text>
           </TouchableOpacity>
         </View>
@@ -496,6 +505,7 @@ export default function YouScreen({ navigation }: any) {
         <View style={styles.footer}>
           <Text style={styles.footerText}>Mido</Text>
           <Text style={styles.footerVersion}>Version 1.0.0</Text>
+        </View>
         </View>
       </ScrollView>
 
@@ -1505,8 +1515,17 @@ const styles = StyleSheet.create({
   },
   profileHeader: {
     backgroundColor: '#1e3a8a',
-    padding: 32,
+    paddingTop: 36,
+    paddingBottom: 28,
+    paddingHorizontal: 24,
     alignItems: 'center',
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    elevation: 6,
+    shadowColor: '#1e3a8a',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
   },
   avatarTouchable: {
     position: 'relative',
@@ -1559,7 +1578,12 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 16,
   },
   statItem: {
     alignItems: 'center',
@@ -1579,22 +1603,40 @@ const styles = StyleSheet.create({
     height: 30,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
+  contentWrap: {
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  sectionHeading: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#9ca3af',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginTop: 22,
+    marginBottom: 10,
+    marginLeft: 4,
+  },
   menuSection: {
-    padding: 16,
     gap: 12,
   },
   menuItem: {
     backgroundColor: 'white',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
     elevation: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
   },
   menuIcon: {
     width: 44,
@@ -1629,29 +1671,34 @@ const styles = StyleSheet.create({
   },
   quickActions: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
     gap: 12,
-    marginTop: 8,
   },
   quickAction: {
     flex: 1,
     backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 12,
-    flexDirection: 'row',
+    paddingVertical: 18,
+    borderRadius: 16,
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
     elevation: 1,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 2,
+    shadowRadius: 5,
+  },
+  quickActionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   quickActionText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#3b82f6',
+    color: '#374151',
   },
   footer: {
     alignItems: 'center',
