@@ -25,7 +25,7 @@ const LogButton = ({ onPress, accessibilityState }: any) => {
       activeOpacity={0.8}
     >
       <View style={[styles.logButton, focused && styles.logButtonFocused]}>
-        <Ionicons name="camera" size={28} color="white" />
+        <Ionicons name="add" size={32} color="white" />
         <Text style={styles.logButtonText}>LOG</Text>
       </View>
     </TouchableOpacity>
@@ -42,7 +42,7 @@ function MainTabs() {
           if (route.name === 'Home') {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'Log') {
-            iconName = focused ? 'camera' : 'camera-outline';
+            iconName = focused ? 'add-circle' : 'add-circle-outline';
           } else if (route.name === 'You') {
             iconName = focused ? 'person' : 'person-outline';
           } else {

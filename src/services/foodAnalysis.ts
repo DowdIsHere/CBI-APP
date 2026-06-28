@@ -1,7 +1,5 @@
-import { readAsStringAsync } from 'expo-file-system';
-import { API_CONFIG } from './config';
+import { API_CONFIG, SCORING_CRITERIA } from './config';
 import { FoodItem } from '../data/types';
-import { checkNetworkConnection, ErrorMessages } from './errorHandling';
 
 interface AnalysisResult {
   success: boolean;
@@ -12,34 +10,6 @@ interface AnalysisResult {
 
 // Generate unique ID
 const generateId = () => Date.now().toString() + Math.random().toString(36).substr(2, 9);
-
-// Convert image URI to base64
-async function imageToBase64(uri: string): Promise<string> {
-  try {
-    const base64 = await readAsStringAsync(uri, {
-      encoding: 'base64',
-    });
-    return base64;
-  } catch (error) {
-    console.error('Error converting image to base64:', error);
-    throw error;
-  }
-}
-
-// Get media type from URI
-function getMediaType(uri: string): string {
-  const extension = uri.split('.').pop()?.toLowerCase();
-  switch (extension) {
-    case 'png':
-      return 'image/png';
-    case 'gif':
-      return 'image/gif';
-    case 'webp':
-      return 'image/webp';
-    default:
-      return 'image/jpeg';
-  }
-}
 
 // System prompt for food analysis
 const ANALYSIS_PROMPT = `You are a nutrition analyst for the Mido app, which focuses on supporting the Enteric Nervous System (ENS) - the "second brain" in the gut.
@@ -59,149 +29,6 @@ IMPORTANT: Return ONLY valid JSON in this exact format, no other text:
 ]
 
 If no food is detected, return an empty array: []`;
-
-// Analyze food photo using Claude Vision
-export async function analyzePhoto(imageUri: string): Promise<AnalysisResult> {
-  if (!API_CONFIG.ANTHROPIC_API_KEY) {
-    // Return demo data if no API key configured
-    console.log('No API key configured, using demo analysis');
-    return getDemoAnalysis();
-  }
-
-  // Check network connectivity first
-  const isConnected = await checkNetworkConnection();
-  if (!isConnected) {
-    return {
-      success: false,
-      foods: [],
-      error: ErrorMessages.NETWORK_OFFLINE,
-      errorType: 'network',
-    };
-  }
-
-  try {
-    const base64Image = await imageToBase64(imageUri);
-    const mediaType = getMediaType(imageUri);
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-
-    const response = await fetch(API_CONFIG.ANTHROPIC_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': API_CONFIG.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: API_CONFIG.MODEL,
-        max_tokens: 1024,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'image',
-                source: {
-                  type: 'base64',
-                  media_type: mediaType,
-                  data: base64Image,
-                },
-              },
-              {
-                type: 'text',
-                text: ANALYSIS_PROMPT,
-              },
-            ],
-          },
-        ],
-      }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('API Error:', errorText);
-
-      // Provide user-friendly error messages based on status code
-      let userMessage = 'Unable to analyze the photo. Please try again.';
-      if (response.status === 401 || response.status === 403) {
-        userMessage = 'Authentication error. Please check your API key.';
-      } else if (response.status === 429) {
-        userMessage = 'Too many requests. Please wait a moment and try again.';
-      } else if (response.status >= 500) {
-        userMessage = 'The analysis service is temporarily unavailable. Please try again later.';
-      }
-
-      return {
-        success: false,
-        foods: [],
-        error: userMessage,
-        errorType: 'api',
-      };
-    }
-
-    const data = await response.json();
-    const content = data.content?.[0]?.text;
-
-    if (!content) {
-      return {
-        success: false,
-        foods: [],
-        error: 'No food items could be identified in the image. Try taking a clearer photo.',
-        errorType: 'parse',
-      };
-    }
-
-    // Parse JSON response
-    const foods = parseAnalysisResponse(content);
-
-    if (foods.length === 0) {
-      return {
-        success: true,
-        foods: [],
-        error: 'No food detected in the image. Try taking a photo of your meal from a different angle.',
-      };
-    }
-
-    return {
-      success: true,
-      foods,
-    };
-  } catch (error) {
-    console.error('Analysis error:', error);
-
-    // Handle specific error types
-    if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        return {
-          success: false,
-          foods: [],
-          error: 'Analysis is taking too long. Please try again with a smaller image.',
-          errorType: 'network',
-        };
-      }
-
-      if (error.message.includes('Network') || error.message.includes('fetch')) {
-        return {
-          success: false,
-          foods: [],
-          error: ErrorMessages.NETWORK_OFFLINE,
-          errorType: 'network',
-        };
-      }
-    }
-
-    return {
-      success: false,
-      foods: [],
-      error: ErrorMessages.ANALYSIS_FAILED,
-      errorType: 'unknown',
-    };
-  }
-}
 
 // Parse Claude's response into FoodItem array
 function parseAnalysisResponse(content: string): FoodItem[] {
@@ -283,49 +110,71 @@ export async function analyzeText(foodDescription: string): Promise<AnalysisResu
   }
 }
 
-// Demo analysis when no API key is configured
-function getDemoAnalysis(): AnalysisResult {
-  return {
-    success: true,
-    foods: [
-      {
-        id: generateId(),
-        name: 'Grilled Salmon',
-        portionSize: '6 oz',
-        score: 3,
-        warnings: [],
-      },
-      {
-        id: generateId(),
-        name: 'Steamed Broccoli',
-        portionSize: '1.5 cups',
-        score: 3,
-        warnings: [],
-      },
-      {
-        id: generateId(),
-        name: 'Olive Oil',
-        portionSize: '1 tbsp',
-        score: 3,
-        warnings: [],
-      },
-    ],
-  };
+// Score a single food locally using the Mido scoring criteria.
+// This keeps manual entry useful and instant without needing an API key.
+function scoreFoodLocally(name: string): { score: number; warnings: string[] } {
+  const lower = name.toLowerCase();
+  const warnings: string[] = [];
+
+  const matchedHigh = SCORING_CRITERIA.HIGH_SCORE_KEYWORDS.some((kw) =>
+    lower.includes(kw)
+  );
+  const matchedLow = SCORING_CRITERIA.LOW_SCORE_KEYWORDS.filter((kw) =>
+    lower.includes(kw)
+  );
+
+  if (matchedLow.length > 0) {
+    if (lower.includes('fried')) warnings.push('Fried — may stress your ENS');
+    if (
+      lower.includes('sugar') ||
+      lower.includes('syrup') ||
+      lower.includes('high fructose')
+    )
+      warnings.push('High in added sugar');
+    if (
+      lower.includes('processed') ||
+      lower.includes('refined') ||
+      lower.includes('fast food') ||
+      lower.includes('junk')
+    )
+      warnings.push('Highly processed');
+    if (
+      lower.includes('seed oil') ||
+      lower.includes('vegetable oil') ||
+      lower.includes('canola') ||
+      lower.includes('soybean oil')
+    )
+      warnings.push('Contains inflammatory seed oils');
+    return { score: 1, warnings };
+  }
+
+  if (matchedHigh) {
+    return { score: 3, warnings };
+  }
+
+  return { score: 2, warnings };
 }
 
-// Demo text analysis
+// Local text analysis when no API key is configured.
+// Uses keyword-based scoring so typed meals get meaningful, useful feedback.
 function getDemoTextAnalysis(description: string): AnalysisResult {
-  const items = description.split(',').map((item) => item.trim()).filter(Boolean);
+  const items = description
+    .split(/[\n,]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
 
   return {
     success: true,
-    foods: items.map((name) => ({
-      id: generateId(),
-      name: name.charAt(0).toUpperCase() + name.slice(1),
-      portionSize: '1 serving',
-      score: 2,
-      warnings: [],
-    })),
+    foods: items.map((name) => {
+      const { score, warnings } = scoreFoodLocally(name);
+      return {
+        id: generateId(),
+        name: name.charAt(0).toUpperCase() + name.slice(1),
+        portionSize: '1 serving',
+        score,
+        warnings,
+      };
+    }),
   };
 }
 
