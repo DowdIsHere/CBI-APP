@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CB Profile Assessment - Cognition Blocks LLC</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: #f9fafb;
+            color: #1f2937;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        /* Intro Screen */
+        .intro-screen {
+            text-align: center;
+            padding: 3rem 1rem;
+        }
+
+        .intro-screen h1 {
+            font-size: 2.5rem;
+            color: #1e3a8a;
+            margin-bottom: 1rem;
+        }
+
+        .intro-screen .subtitle {
+            font-size: 1.25rem;
+            color: #6b7280;
+            margin-bottom: 2rem;
+        }
+
+        .info-box {
+            max-width: 42rem;
+            margin: 0 auto 2rem;
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 2rem;
+            text-align: left;
+        }
+
+        .info-box h2 {
+            font-size: 1.5rem;
+            color: #1e40af;
+            margin-bottom: 1rem;
+        }
+
+        .info-box ul {
+            list-style: none;
+        }
+
+        .info-box li {
+            margin: 0.75rem 0;
+            padding-left: 2rem;
+            position: relative;
+        }
+
+        .info-box li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #2563eb;
+            font-weight: bold;
+        }
+
+        .warning-box {
+            max-width: 42rem;
+            margin: 0 auto 2rem;
+            background: #fef3c7;
+            border: 2px solid #fbbf24;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+        }
+
+        .btn {
+            background: linear-gradient(to right, #2563eb, #1e40af);
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1.125rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #1f2937;
+            border: 2px solid #d1d5db;
+        }
+
+        /* Question Screen */
+        .question-screen {
+            max-width: 48rem;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .progress-section {
+            margin-bottom: 2rem;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 0.75rem;
+            background: #e5e7eb;
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(to right, #3b82f6, #10b981);
+            transition: width 0.3s ease;
+        }
+
+        .question-card {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .question-card h2 {
+            font-size: 1.5rem;
+            color: #1f2937;
+            margin-bottom: 1.5rem;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .option-btn {
+            width: 100%;
+            text-align: left;
+            padding: 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.5rem;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1rem;
+        }
+
+        .option-btn:hover {
+            border-color: #3b82f6;
+            background: #f9fafb;
+        }
+
+        .option-btn.selected {
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .navigation button {
+            flex: 1;
+            max-width: 200px;
+        }
+
+        /* Results Screen */
+        .results-screen {
+            max-width: 64rem;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .results-screen h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            color: #1e3a8a;
+            margin-bottom: 2rem;
+        }
+
+        .results-section {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .results-section h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .gradient-result {
+            margin-bottom: 1.5rem;
+        }
+
+        .gradient-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .gradient-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+        }
+
+        .gradient-bar {
+            width: 100%;
+            height: 0.75rem;
+            background: #e5e7eb;
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+
+        .gradient-fill {
+            height: 100%;
+            background: #3b82f6;
+            border-radius: 9999px;
+            transition: width 0.5s ease;
+        }
+
+        .blocks-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .block-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+
+        .block-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .block-name {
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+
+        .block-score {
+            color: #10b981;
+            font-weight: bold;
+        }
+
+        .block-bar {
+            width: 100%;
+            height: 0.5rem;
+            background: #e5e7eb;
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+
+        .block-fill {
+            height: 100%;
+            background: #10b981;
+            border-radius: 9999px;
+        }
+
+        .atp-score {
+            text-align: center;
+        }
+
+        .atp-number {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #f97316;
+            margin-bottom: 1rem;
+        }
+
+        .atp-label {
+            font-size: 1.25rem;
+            color: #1f2937;
+            margin-bottom: 1rem;
+        }
+
+        .atp-description {
+            color: #6b7280;
+        }
+
+        .cta-box {
+            background: linear-gradient(to right, #2563eb, #10b981);
+            color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .cta-box h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .cta-box p {
+            font-size: 1.125rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .cta-box .btn {
+            background: white;
+            color: #2563eb;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .intro-screen h1 {
+                font-size: 2rem;
+            }
+
+            .blocks-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .navigation {
+                flex-direction: column;
+            }
+
+            .navigation button {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Intro Screen -->
+        <div id="introScreen" class="intro-screen">
+            <h1>CB Profile Assessment</h1>
+            <p class="subtitle">Discover your complete cognitive architecture</p>
+
+            <div class="info-box">
+                <h2>What You'll Discover:</h2>
+                <ul>
+                    <li><strong>Your Gradient Positions:</strong> How you filter reality before processing</li>
+                    <li><strong>Your Cognitive Blocks:</strong> Your 8 processing strengths and development areas</li>
+                    <li><strong>Your ATP Disruption Score:</strong> How your current diet affects cellular energy</li>
+                </ul>
+            </div>
+
+            <div class="warning-box">
+                <p><strong>Time Required:</strong> 30-40 minutes</p>
+                <p><strong>Questions:</strong> 88 total (10 gradients + 40 blocks + 38 fuel state)</p>
+                <p><strong>Note:</strong> Questions are randomized for assessment integrity</p>
+            </div>
+
+            <button class="btn" onclick="startAssessment()">Start Assessment →</button>
+        </div>
+
+        <!-- Question Screen -->
+        <div id="questionScreen" class="question-screen hidden">
+            <div class="progress-section">
+                <div class="progress-info">
+                    <span id="sectionTitle">Layer 1: Gradients</span>
+                    <span id="questionCounter">Question 1 of 10</span>
+                </div>
+                <div class="progress-bar">
+                    <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="question-card">
+                <h2 id="questionText"></h2>
+                <div id="optionsContainer" class="options"></div>
+            </div>
+
+            <div class="navigation">
+                <button class="btn btn-secondary" onclick="prevQuestion()" id="prevBtn">← Previous</button>
+                <button class="btn" onclick="nextQuestion()" id="nextBtn" disabled>Next →</button>
+            </div>
+        </div>
+
+        <!-- Results Screen -->
+        <div id="resultsScreen" class="results-screen hidden">
+            <h1>Your CB Profile Results</h1>
+
+            <!-- Gradients -->
+            <div class="results-section">
+                <h2 style="color: #1e40af;">Your Gradient Positions</h2>
+                <div id="gradientsResults"></div>
+            </div>
+
+            <!-- Cognitive Blocks -->
+            <div class="results-section">
+                <h2 style="color: #059669;">Your Cognitive Block Profile</h2>
+                <div id="blocksResults" class="blocks-grid"></div>
+            </div>
+
+            <!-- ATP Score -->
+            <div class="results-section">
+                <h2 style="color: #ea580c;">Your ATP Disruption Score</h2>
+                <div id="atpResults" class="atp-score"></div>
+            </div>
+
+            <!-- CTA -->
+            <div class="cta-box">
+                <h2>Ready for Your Complete Analysis?</h2>
+                <p>Get your personalized CB Full Report with detailed explanations, career guidance, and nutrition recommendations.</p>
+                <button class="btn">Get Full Report ($29) →</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="cb-assessment.js"></script>
+</body>
+</html>
