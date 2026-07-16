@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
-  Alert,
   ActivityIndicator,
   ScrollView,
   TextInput,
@@ -17,6 +16,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useAppData } from '../data/AppContext';
 import { FoodItem } from '../data/types';
 import { analyzePhoto, analyzeText, lookupBarcode } from '../services/foodAnalysis';
+import { alertMessage } from '../utils/alerts';
 
 type InputMethod = 'camera' | 'barcode' | 'type' | 'batch' | null;
 
@@ -54,10 +54,9 @@ export default function LogScreen() {
       if (analysis.success && analysis.foods.length > 0) {
         setDetectedFoods(analysis.foods);
       } else {
-        Alert.alert(
+        alertMessage(
           'Analysis Failed',
-          analysis.error || 'Could not identify foods in the image. Try again or enter manually.',
-          [{ text: 'OK' }]
+          analysis.error || 'Could not identify foods in the image. Try again or enter manually.'
         );
       }
     }
@@ -79,10 +78,9 @@ export default function LogScreen() {
     if (result.success && result.foods.length > 0) {
       setDetectedFoods(result.foods);
     } else {
-      Alert.alert(
+      alertMessage(
         'Product Not Found',
-        'This barcode was not found in the database. Try taking a photo or entering manually.',
-        [{ text: 'OK' }]
+        'This barcode was not found in the database. Try taking a photo or entering manually.'
       );
     }
   };
@@ -117,11 +115,7 @@ export default function LogScreen() {
       if (allFoods.length > 0) {
         setDetectedFoods(allFoods);
       } else {
-        Alert.alert(
-          'Analysis Failed',
-          'Could not identify foods in the selected images.',
-          [{ text: 'OK' }]
-        );
+        alertMessage('Analysis Failed', 'Could not identify foods in the selected images.');
       }
     }
   };
@@ -139,11 +133,7 @@ export default function LogScreen() {
       setManualInput('');
       setInputMethod('camera');
     } else {
-      Alert.alert(
-        'Analysis Failed',
-        result.error || 'Could not analyze the food description.',
-        [{ text: 'OK' }]
-      );
+      alertMessage('Analysis Failed', result.error || 'Could not analyze the food description.');
     }
   };
 
@@ -168,19 +158,14 @@ export default function LogScreen() {
       totalScore,
     });
 
-    Alert.alert(
+    alertMessage(
       'Meal Saved!',
       `Score: +${totalScore}. Great job supporting your ENS!`,
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            setDetectedFoods([]);
-            setInputMethod('camera');
-            setMealName('');
-          },
-        },
-      ]
+      () => {
+        setDetectedFoods([]);
+        setInputMethod('camera');
+        setMealName('');
+      }
     );
   };
 

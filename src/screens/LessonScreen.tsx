@@ -6,11 +6,11 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getLessonById } from '../data/learningContent';
 import { useAppData } from '../data/AppContext';
+import { alertMessage } from '../utils/alerts';
 
 export default function LessonScreen({ route, navigation }: any) {
   const { lessonId } = route.params;
@@ -28,10 +28,10 @@ export default function LessonScreen({ route, navigation }: any) {
     }
 
     completeLesson(lessonId, lesson.moduleId);
-    Alert.alert(
+    alertMessage(
       'Lesson Complete!',
       'Great job! Keep up the learning momentum.',
-      [{ text: 'Continue', onPress: () => navigation.goBack() }]
+      () => navigation.goBack()
     );
   };
 

@@ -9,7 +9,6 @@ import {
   Switch,
   Dimensions,
   TextInput,
-  Alert,
   ActivityIndicator,
   Image,
 } from 'react-native';
@@ -19,6 +18,8 @@ import Panel from '../components/panels/Panel';
 import { useAppData } from '../data/AppContext';
 import { Trigger, FastingSchedule } from '../data/types';
 import { exportAndShare, getExportSummary, ExportFormat, ExportScope } from '../services/dataExport';
+import { useAuth } from '../contexts/AuthContext';
+import { alertMessage, alertConfirm } from '../utils/alerts';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -105,6 +106,7 @@ export default function YouScreen({ navigation }: any) {
   const [fastingDays, setFastingDays] = useState<string[]>([]);
 
   const { data, getWeeklyStats, addTrigger, removeTrigger, updateProfile, updateSettings } = useAppData();
+  const { signOut } = useAuth();
   const { user, stats, triggers, settings } = data;
 
   const weeklyData = getWeeklyStats();
@@ -136,7 +138,7 @@ export default function YouScreen({ navigation }: any) {
 
   const handleSaveProfile = () => {
     if (!editName.trim()) {
-      Alert.alert('Name Required', 'Please enter your name.');
+      alertMessage('Name Required', 'Please enter your name.');
       return;
     }
     updateProfile({
@@ -150,13 +152,13 @@ export default function YouScreen({ navigation }: any) {
       healthGoals: editHealthGoals,
     });
     setEditProfileOpen(false);
-    Alert.alert('Profile Updated', 'Your profile has been saved.');
+    alertMessage('Profile Updated', 'Your profile has been saved.');
   };
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Required', 'Please allow access to your photo library.');
+      alertMessage('Permission Required', 'Please allow access to your photo library.');
       return;
     }
 
@@ -196,7 +198,7 @@ export default function YouScreen({ navigation }: any) {
       },
     });
     setFastingOpen(false);
-    Alert.alert('Fasting Schedule Updated', 'Your fasting schedule has been saved.');
+    alertMessage('Fasting Schedule Updated', 'Your fasting schedule has been saved.');
   };
 
   const toggleFastingDay = (day: string) => {
@@ -308,29 +310,23 @@ export default function YouScreen({ navigation }: any) {
     if (result.success) {
       setExportOpen(false);
     } else {
-      Alert.alert('Export Failed', result.error || 'Unable to export data');
+      alertMessage('Export Failed', result.error || 'Unable to export data');
     }
   };
 
   const handleRemoveTrigger = (triggerId: string, triggerName: string) => {
-    Alert.alert(
+    alertConfirm(
       'Remove Trigger',
       `Are you sure you want to remove "${triggerName}" from your trigger list?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: () => removeTrigger(triggerId),
-        },
-      ]
+      () => removeTrigger(triggerId),
+      { confirmLabel: 'Remove', destructive: true }
     );
   };
 
   const handleAddSuggestion = (suggestion: typeof TRIGGER_SUGGESTIONS[0]) => {
     // Check if already exists
     if (triggers.some(t => t.name.toLowerCase() === suggestion.name.toLowerCase())) {
-      Alert.alert('Already Added', `${suggestion.name} is already in your trigger list.`);
+      alertMessage('Already Added', `${suggestion.name} is already in your trigger list.`);
       return;
     }
 
@@ -345,12 +341,12 @@ export default function YouScreen({ navigation }: any) {
   const handleAddCustomTrigger = () => {
     const name = customTriggerName.trim();
     if (!name) {
-      Alert.alert('Enter Name', 'Please enter a trigger name.');
+      alertMessage('Enter Name', 'Please enter a trigger name.');
       return;
     }
 
     if (triggers.some(t => t.name.toLowerCase() === name.toLowerCase())) {
-      Alert.alert('Already Added', `${name} is already in your trigger list.`);
+      alertMessage('Already Added', `${name} is already in your trigger list.`);
       return;
     }
 
@@ -1021,16 +1017,17 @@ export default function YouScreen({ navigation }: any) {
         <TouchableOpacity
           style={[styles.settingsMenuItem, styles.logoutItem]}
           onPress={() => {
-            Alert.alert(
+            alertConfirm(
               'Log Out',
               'Are you sure you want to log out?',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Log Out', style: 'destructive', onPress: () => {
-                  // In a real app, this would clear auth and navigate to login
-                  Alert.alert('Logged Out', 'You have been logged out.');
-                }},
-              ]
+              async () => {
+                const result = await signOut();
+                if (!result.success) {
+                  alertMessage('Logout Failed', result.error || 'Unable to log out. Please try again.');
+                }
+                // On success, AuthContext flips isAuthenticated and App.tsx routes back to AuthScreen.
+              },
+              { confirmLabel: 'Log Out', destructive: true }
             );
           }}
         >
