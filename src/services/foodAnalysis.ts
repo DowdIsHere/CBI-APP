@@ -112,7 +112,7 @@ export async function analyzeText(foodDescription: string): Promise<AnalysisResu
 
 // Score a single food locally using the Mido scoring criteria.
 // This keeps manual entry useful and instant without needing an API key.
-function scoreFoodLocally(name: string): { score: number; warnings: string[] } {
+export function scoreFoodLocally(name: string): { score: number; warnings: string[] } {
   const lower = name.toLowerCase();
   const warnings: string[] = [];
 

@@ -7,19 +7,67 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Image,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Panel from '../components/panels/Panel';
 import { useAppData } from '../data/AppContext';
+import {
+  NUTRIENT_CATEGORIES,
+  computeNutrientCoverage,
+  suggestionsFor,
+} from '../data/mitoFoods';
+
+// Format inches as 5'10"
+const formatHeight = (inches?: number) => {
+  if (!inches) return '—';
+  const ft = Math.floor(inches / 12);
+  const inch = Math.round(inches % 12);
+  return `${ft}'${inch}"`;
+};
 
 export default function HomeScreen({ navigation }: any) {
   const [scoreDetailOpen, setScoreDetailOpen] = useState(false);
   const [insightsOpen, setInsightsOpen] = useState(false);
   const [achievementsOpen, setAchievementsOpen] = useState(false);
+  const [atpOpen, setAtpOpen] = useState(false);
+  const [bodyOpen, setBodyOpen] = useState(false);
+  const [weightInput, setWeightInput] = useState('');
+  const [heightInput, setHeightInput] = useState('');
 
-  const { data, getTodaysMeals } = useAppData();
-  const { stats, insights, achievements, currentLesson } = data;
+  const { data, getTodaysMeals, logMeasurement } = useAppData();
+  const { stats, insights, achievements, currentLesson, user } = data;
+  const bodyMeasurements = data.bodyMeasurements || [];
   const todaysMeals = getTodaysMeals();
+
+  const coverage = computeNutrientCoverage(todaysMeals.flatMap((m) => m.items));
+
+  const handleLogWeight = () => {
+    const weight = parseFloat(weightInput);
+    if (!weight || weight <= 0) return;
+    const height = heightInput ? parseFloat(heightInput) : undefined;
+    logMeasurement(weight, height && height > 0 ? height : undefined);
+    setWeightInput('');
+    setHeightInput('');
+  };
+
+  // BMI from latest height/weight (703 * lbs / in²)
+  const latestHeight =
+    user.height || [...bodyMeasurements].reverse().find((m) => m.height)?.height;
+  const latestWeight = user.weight || bodyMeasurements[bodyMeasurements.length - 1]?.weight;
+  const bmi =
+    latestHeight && latestWeight
+      ? Math.round(((703 * latestWeight) / (latestHeight * latestHeight)) * 10) / 10
+      : null;
+  const bmiLabel =
+    bmi === null ? '' : bmi < 18.5 ? 'Underweight' : bmi < 25 ? 'Healthy' : bmi < 30 ? 'Overweight' : 'Obese';
+
+  const totalWeightChange =
+    bodyMeasurements.length >= 2
+      ? Math.round(
+          (bodyMeasurements[bodyMeasurements.length - 1].weight - bodyMeasurements[0].weight) * 10
+        ) / 10
+      : null;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -60,6 +108,47 @@ export default function HomeScreen({ navigation }: any) {
               </View>
             </View>
             <Text style={styles.scoreTapHint}>Tap for details</Text>
+          </TouchableOpacity>
+
+          {/* ATP Nutrition Meter */}
+          <TouchableOpacity
+            style={styles.atpCard}
+            onPress={() => setAtpOpen(true)}
+            activeOpacity={0.9}
+          >
+            <View style={styles.atpHeader}>
+              <View style={styles.atpTitleRow}>
+                <Ionicons name="battery-charging" size={20} color="#c2410c" />
+                <Text style={styles.atpTitle}>ATP Nutrition Meter</Text>
+              </View>
+              <Text style={styles.atpPercent}>{coverage.percent}%</Text>
+            </View>
+            <View style={styles.atpBar}>
+              <View style={[styles.atpBarFill, { width: `${coverage.percent}%` }]} />
+            </View>
+            <View style={styles.atpPipsRow}>
+              {NUTRIENT_CATEGORIES.map((cat) => {
+                const covered = coverage.covered.includes(cat.id);
+                return (
+                  <View
+                    key={cat.id}
+                    style={[
+                      styles.atpPip,
+                      { backgroundColor: covered ? cat.bg : '#f3f4f6' },
+                    ]}
+                  >
+                    <Ionicons
+                      name={cat.icon as any}
+                      size={14}
+                      color={covered ? cat.color : '#d1d5db'}
+                    />
+                  </View>
+                );
+              })}
+            </View>
+            <Text style={styles.atpSubtitle}>
+              {coverage.covered.length}/6 mitochondrial nutrients today · Tap for details
+            </Text>
           </TouchableOpacity>
 
           {/* 2. Continue Learning Card */}
@@ -106,6 +195,32 @@ export default function HomeScreen({ navigation }: any) {
                   <Text style={styles.teaserTitle}>Insights</Text>
                   <Text style={styles.teaserSubtitle}>
                     {insights.length > 0 ? `${insights.length} tips for you today` : 'No insights yet'}
+                  </Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+            </TouchableOpacity>
+
+            {/* Body Metrics Teaser */}
+            <TouchableOpacity
+              style={styles.teaser}
+              onPress={() => setBodyOpen(true)}
+              activeOpacity={0.8}
+            >
+              <View style={styles.teaserContent}>
+                <View style={[styles.teaserIcon, { backgroundColor: '#f5f3ff' }]}>
+                  <Ionicons name="body" size={20} color="#8b5cf6" />
+                </View>
+                <View style={styles.teaserText}>
+                  <Text style={styles.teaserTitle}>Body Metrics</Text>
+                  <Text style={styles.teaserSubtitle}>
+                    {latestWeight
+                      ? `${latestWeight} lbs · ${formatHeight(latestHeight)}${
+                          totalWeightChange !== null
+                            ? ` · ${totalWeightChange > 0 ? '+' : ''}${totalWeightChange} lbs overall`
+                            : ''
+                        }`
+                      : 'Log your height & weight'}
                   </Text>
                 </View>
               </View>
@@ -205,6 +320,154 @@ export default function HomeScreen({ navigation }: any) {
             <Text style={styles.onTrackText}>On Track</Text>
           </View>
         </View>
+      </Panel>
+
+      {/* ATP Meter Panel */}
+      <Panel
+        isOpen={atpOpen}
+        onClose={() => setAtpOpen(false)}
+        title="ATP Nutrition Meter"
+      >
+        <Text style={styles.atpPanelIntro}>
+          Six nutrients your mitochondria need to make energy. Log foods from each group to
+          fill the meter every day.
+        </Text>
+        {NUTRIENT_CATEGORIES.map((cat) => {
+          const covered = coverage.covered.includes(cat.id);
+          return (
+            <View key={cat.id} style={styles.atpNutrientRow}>
+              <View style={[styles.atpNutrientIcon, { backgroundColor: cat.bg }]}>
+                <Ionicons name={cat.icon as any} size={20} color={cat.color} />
+              </View>
+              <View style={styles.atpNutrientInfo}>
+                <Text style={styles.atpNutrientTitle}>{cat.title}</Text>
+                <Text style={styles.atpNutrientSubtitle}>
+                  {covered
+                    ? 'Covered today'
+                    : `Try: ${suggestionsFor(cat.id).join(', ')}`}
+                </Text>
+              </View>
+              <Ionicons
+                name={covered ? 'checkmark-circle' : 'ellipse-outline'}
+                size={24}
+                color={covered ? '#10b981' : '#d1d5db'}
+              />
+            </View>
+          );
+        })}
+      </Panel>
+
+      {/* Body Metrics Panel */}
+      <Panel
+        isOpen={bodyOpen}
+        onClose={() => setBodyOpen(false)}
+        title="Body Metrics"
+      >
+        {/* Current stats */}
+        <View style={styles.panelStatsGrid}>
+          <View style={styles.panelStat}>
+            <Text style={styles.panelStatValue}>
+              {latestWeight ? `${latestWeight}` : '—'}
+            </Text>
+            <Text style={styles.panelStatLabel}>Weight (lbs)</Text>
+          </View>
+          <View style={styles.panelStat}>
+            <Text style={styles.panelStatValue}>{formatHeight(latestHeight)}</Text>
+            <Text style={styles.panelStatLabel}>Height</Text>
+          </View>
+          <View style={styles.panelStat}>
+            <Text style={styles.panelStatValue}>
+              {totalWeightChange !== null
+                ? `${totalWeightChange > 0 ? '+' : ''}${totalWeightChange}`
+                : '—'}
+            </Text>
+            <Text style={styles.panelStatLabel}>Change (lbs)</Text>
+          </View>
+          <View style={styles.panelStat}>
+            <Text style={styles.panelStatValue}>{bmi ?? '—'}</Text>
+            <Text style={styles.panelStatLabel}>{bmi ? `BMI · ${bmiLabel}` : 'BMI'}</Text>
+          </View>
+        </View>
+
+        {/* Log a measurement */}
+        <Text style={styles.panelSectionTitle}>Log today</Text>
+        <View style={styles.bodyForm}>
+          <TextInput
+            style={styles.bodyInput}
+            placeholder="Weight (lbs)"
+            placeholderTextColor="#9ca3af"
+            keyboardType="numeric"
+            value={weightInput}
+            onChangeText={setWeightInput}
+          />
+          <TextInput
+            style={styles.bodyInput}
+            placeholder={latestHeight ? `Height (${latestHeight} in)` : 'Height (in)'}
+            placeholderTextColor="#9ca3af"
+            keyboardType="numeric"
+            value={heightInput}
+            onChangeText={setHeightInput}
+          />
+          <TouchableOpacity
+            style={[styles.bodyLogButton, !parseFloat(weightInput) && styles.bodyLogDisabled]}
+            onPress={handleLogWeight}
+            disabled={!parseFloat(weightInput)}
+          >
+            <Ionicons name="add" size={22} color="white" />
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.bodyHint}>
+          Weigh in regularly — same time of day works best. Height only needs updating if it
+          changes.
+        </Text>
+
+        {/* History */}
+        <Text style={styles.panelSectionTitle}>History</Text>
+        {bodyMeasurements.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="scale-outline" size={32} color="#9ca3af" />
+            <Text style={styles.emptyStateText}>No measurements yet</Text>
+          </View>
+        ) : (
+          [...bodyMeasurements]
+            .slice(-8)
+            .reverse()
+            .map((m, idx, arr) => {
+              const prev = arr[idx + 1];
+              const delta = prev ? Math.round((m.weight - prev.weight) * 10) / 10 : null;
+              return (
+                <View key={m.id} style={styles.measurementRow}>
+                  <View>
+                    <Text style={styles.measurementWeight}>{m.weight} lbs</Text>
+                    <Text style={styles.measurementDate}>{m.date}</Text>
+                  </View>
+                  {delta !== null && (
+                    <View
+                      style={[
+                        styles.deltaBadge,
+                        { backgroundColor: delta <= 0 ? '#d1fae5' : '#fee2e2' },
+                      ]}
+                    >
+                      <Ionicons
+                        name={delta <= 0 ? 'trending-down' : 'trending-up'}
+                        size={13}
+                        color={delta <= 0 ? '#047857' : '#b91c1c'}
+                      />
+                      <Text
+                        style={[
+                          styles.deltaText,
+                          { color: delta <= 0 ? '#047857' : '#b91c1c' },
+                        ]}
+                      >
+                        {delta > 0 ? '+' : ''}
+                        {delta} lbs
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              );
+            })
+        )}
       </Panel>
 
       {/* Insights Panel */}
@@ -377,6 +640,162 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.7)',
     marginTop: 12,
     textAlign: 'center',
+  },
+  atpCard: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 18,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+  },
+  atpHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  atpTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  atpTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1f2937',
+  },
+  atpPercent: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#c2410c',
+  },
+  atpBar: {
+    height: 8,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 4,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  atpBarFill: {
+    height: '100%',
+    backgroundColor: '#f59e0b',
+    borderRadius: 4,
+  },
+  atpPipsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  atpPip: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  atpSubtitle: {
+    fontSize: 12,
+    color: '#9ca3af',
+    textAlign: 'center',
+  },
+  atpPanelIntro: {
+    fontSize: 14,
+    color: '#6b7280',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  atpNutrientRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#f9fafb',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 10,
+  },
+  atpNutrientIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  atpNutrientInfo: {
+    flex: 1,
+  },
+  atpNutrientTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1f2937',
+  },
+  atpNutrientSubtitle: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 2,
+  },
+  bodyForm: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 8,
+  },
+  bodyInput: {
+    flex: 1,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: '#1f2937',
+  },
+  bodyLogButton: {
+    width: 48,
+    borderRadius: 12,
+    backgroundColor: '#8b5cf6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bodyLogDisabled: {
+    backgroundColor: '#d1d5db',
+  },
+  bodyHint: {
+    fontSize: 12,
+    color: '#9ca3af',
+    lineHeight: 17,
+    marginBottom: 20,
+  },
+  measurementRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#f9fafb',
+    padding: 14,
+    borderRadius: 10,
+    marginBottom: 8,
+  },
+  measurementWeight: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  measurementDate: {
+    fontSize: 12,
+    color: '#9ca3af',
+    marginTop: 2,
+  },
+  deltaBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  deltaText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   learningCard: {
     backgroundColor: '#8b5cf6',

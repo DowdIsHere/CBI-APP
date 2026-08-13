@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AppData, Meal, FoodItem, Trigger, Insight, UserProfile, Settings } from './types';
+import { AppData, Meal, FoodItem, Trigger, Insight, UserProfile, Settings, BodyMeasurement } from './types';
 import { demoData, initialData } from './initialData';
 
 const STORAGE_KEY = '@cbi_app_data';
@@ -25,6 +25,9 @@ interface AppContextType {
 
   // Profile actions
   updateProfile: (profile: Partial<UserProfile>) => void;
+
+  // Body measurement actions
+  logMeasurement: (weight: number, height?: number) => void;
 
   // Settings actions
   updateSettings: (settings: Partial<Settings>) => void;
@@ -65,7 +68,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       const stored = await AsyncStorage.getItem(STORAGE_KEY);
       if (stored) {
-        setData(JSON.parse(stored));
+        // Merge over initialData so fields added in newer versions
+        // (e.g. bodyMeasurements) exist on older stored data.
+        setData({ ...initialData, ...JSON.parse(stored) });
       } else if (USE_DEMO_DATA) {
         setData(demoData);
       }
@@ -185,10 +190,65 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Update profile
   const updateProfile = (profile: Partial<UserProfile>) => {
-    setData(prev => ({
-      ...prev,
-      user: { ...prev.user, ...profile },
-    }));
+    setData(prev => {
+      let measurements = prev.bodyMeasurements || [];
+      const last = measurements[measurements.length - 1];
+
+      // Editing weight in the profile also records a measurement so the
+      // weight history stays continuous.
+      if (typeof profile.weight === 'number' && profile.weight !== last?.weight) {
+        const entry: BodyMeasurement = {
+          id: generateId(),
+          date: getTodayString(),
+          weight: profile.weight,
+          height: profile.height ?? prev.user.height,
+        };
+        // Replace today's entry rather than stacking duplicates.
+        measurements = [...measurements.filter(m => m.date !== entry.date), entry];
+      }
+
+      return {
+        ...prev,
+        user: { ...prev.user, ...profile },
+        bodyMeasurements: measurements,
+        stats: withWeightChange(prev.stats, measurements),
+      };
+    });
+  };
+
+  // Log a body measurement (weight required, height optional)
+  const logMeasurement = (weight: number, height?: number) => {
+    setData(prev => {
+      const entry: BodyMeasurement = {
+        id: generateId(),
+        date: getTodayString(),
+        weight,
+        height: height ?? prev.user.height,
+      };
+      const measurements = [
+        ...(prev.bodyMeasurements || []).filter(m => m.date !== entry.date),
+        entry,
+      ];
+
+      return {
+        ...prev,
+        bodyMeasurements: measurements,
+        user: {
+          ...prev.user,
+          weight,
+          ...(height !== undefined ? { height } : {}),
+        },
+        stats: withWeightChange(prev.stats, measurements),
+      };
+    });
+  };
+
+  // Keep stats.weightChange in sync with the measurement history
+  const withWeightChange = (stats: AppData['stats'], measurements: BodyMeasurement[]) => {
+    if (measurements.length < 2) return stats;
+    const first = measurements[0].weight;
+    const latest = measurements[measurements.length - 1].weight;
+    return { ...stats, weightChange: Math.round((latest - first) * 10) / 10 };
   };
 
   // Update settings
@@ -292,6 +352,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         addTrigger,
         removeTrigger,
         updateProfile,
+        logMeasurement,
         updateSettings,
         completeLesson,
         isLessonCompleted,

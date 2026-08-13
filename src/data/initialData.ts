@@ -32,6 +32,8 @@ export const initialData: AppData = {
 
   meals: [],
 
+  bodyMeasurements: [],
+
   dailyStats: [],
 
   achievements: [
@@ -143,6 +145,12 @@ export const demoData: AppData = {
       ],
       totalScore: 4,
     },
+  ],
+
+  bodyMeasurements: [
+    { id: 'bm1', date: getDateString(-14), weight: 177.5, height: 70 },
+    { id: 'bm2', date: getDateString(-7), weight: 176, height: 70 },
+    { id: 'bm3', date: getDateString(0), weight: 175, height: 70 },
   ],
 
   dailyStats: [

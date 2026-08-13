@@ -29,6 +29,15 @@ export interface FoodItem {
   upc?: string;
   score: number;
   warnings: string[];
+  nutrients?: string[]; // mitochondrial nutrient ids this food provides (see mitoFoods.ts)
+}
+
+// Body Measurement (weight/height over time)
+export interface BodyMeasurement {
+  id: string;
+  date: string;      // YYYY-MM-DD
+  weight: number;    // lbs
+  height?: number;   // inches, captured when known
 }
 
 // Meals
@@ -144,6 +153,7 @@ export interface AppData {
   stats: UserStats;
   triggers: Trigger[];
   meals: Meal[];
+  bodyMeasurements: BodyMeasurement[];
   dailyStats: DailyStats[];
   achievements: Achievement[];
   insights: Insight[];
