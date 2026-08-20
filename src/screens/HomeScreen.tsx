@@ -16,6 +16,7 @@ import {
   NUTRIENT_CATEGORIES,
   computeNutrientCoverage,
   suggestionsFor,
+  formatAmount,
 } from '../data/mitoFoods';
 
 // Format inches as 5'10"
@@ -147,7 +148,7 @@ export default function HomeScreen({ navigation }: any) {
               })}
             </View>
             <Text style={styles.atpSubtitle}>
-              {coverage.covered.length}/6 mitochondrial nutrients today · Tap for details
+              {coverage.covered.length}/6 daily targets hit · Tap for details
             </Text>
           </TouchableOpacity>
 
@@ -329,29 +330,47 @@ export default function HomeScreen({ navigation }: any) {
         title="ATP Nutrition Meter"
       >
         <Text style={styles.atpPanelIntro}>
-          Six nutrients your mitochondria need to make energy. Log foods from each group to
-          fill the meter every day.
+          Six nutrients your mitochondria need to make energy, tracked against daily
+          targets (RDA where one exists; food-realistic support targets for CoQ10 and ALA,
+          which your body also makes itself).
         </Text>
         {NUTRIENT_CATEGORIES.map((cat) => {
-          const covered = coverage.covered.includes(cat.id);
+          const pct = coverage.percents[cat.id];
+          const total = coverage.totals[cat.id];
+          const covered = pct >= 100;
           return (
             <View key={cat.id} style={styles.atpNutrientRow}>
-              <View style={[styles.atpNutrientIcon, { backgroundColor: cat.bg }]}>
-                <Ionicons name={cat.icon as any} size={20} color={cat.color} />
-              </View>
-              <View style={styles.atpNutrientInfo}>
-                <Text style={styles.atpNutrientTitle}>{cat.title}</Text>
-                <Text style={styles.atpNutrientSubtitle}>
-                  {covered
-                    ? 'Covered today'
-                    : `Try: ${suggestionsFor(cat.id).join(', ')}`}
+              <View style={styles.atpNutrientTop}>
+                <View style={[styles.atpNutrientIcon, { backgroundColor: cat.bg }]}>
+                  <Ionicons name={cat.icon as any} size={20} color={cat.color} />
+                </View>
+                <View style={styles.atpNutrientInfo}>
+                  <Text style={styles.atpNutrientTitle}>{cat.title}</Text>
+                  <Text style={styles.atpNutrientSubtitle}>
+                    {formatAmount(total)} / {formatAmount(cat.target)} {cat.unit}
+                    {covered ? ' · target hit' : ''}
+                  </Text>
+                </View>
+                <Text style={[styles.atpNutrientPct, covered && { color: '#047857' }]}>
+                  {pct}%
                 </Text>
               </View>
-              <Ionicons
-                name={covered ? 'checkmark-circle' : 'ellipse-outline'}
-                size={24}
-                color={covered ? '#10b981' : '#d1d5db'}
-              />
+              <View style={styles.atpNutrientBar}>
+                <View
+                  style={[
+                    styles.atpNutrientBarFill,
+                    { width: `${pct}%`, backgroundColor: cat.color },
+                  ]}
+                />
+              </View>
+              {!covered && (
+                <Text style={styles.atpNutrientTry}>
+                  Try: {suggestionsFor(cat.id).join(', ')}
+                </Text>
+              )}
+              {cat.targetNote && (
+                <Text style={styles.atpNutrientNote}>{cat.targetNote}</Text>
+              )}
             </View>
           );
         })}
@@ -708,13 +727,43 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   atpNutrientRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
     backgroundColor: '#f9fafb',
     padding: 14,
     borderRadius: 12,
     marginBottom: 10,
+  },
+  atpNutrientTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 10,
+  },
+  atpNutrientPct: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#6b7280',
+  },
+  atpNutrientBar: {
+    height: 6,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  atpNutrientBarFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  atpNutrientTry: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 8,
+  },
+  atpNutrientNote: {
+    fontSize: 11,
+    color: '#9ca3af',
+    lineHeight: 15,
+    marginTop: 6,
+    fontStyle: 'italic',
   },
   atpNutrientIcon: {
     width: 40,

@@ -59,7 +59,7 @@ export default function LogScreen() {
         {
           id,
           name: food.name,
-          portionSize: '1 serving',
+          portionSize: food.serving,
           score: food.score,
           warnings: triggerWarningsForFood(food.name, triggers),
           nutrients: food.nutrients,
